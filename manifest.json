@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+    "name": "Magical Scanner",
+    "version": "1.0",
+    "description": "Extracts page details (URL, title, text).",
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": "icon.png"
+    },
+    "permissions": ["activeTab", "scripting"],
+    "background": {
+      "service_worker": "background.js"
+    }
+  }
