@@ -1,23 +1,42 @@
 {
   "manifest_version": 3,
-  "name": "Magical Scanner",
-  "version": "1.1",
-  "description": "Extracts page details (URL, title, and text) with a styled UI.",
-  "permissions": ["activeTab", "scripting"],
+  "name": "IIMagical Extension",
+  "version": "1.0",
+  "description": "An AI-powered extension to scan pages and perform automations.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
+  "background": {
+    "service_worker": "background.js"
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "background": {
-    "service_worker": "background.js"
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "css": ["content-style.css"],
+      "js": ["content-script.js"]
+    }
+  ],
+ "web_accessible_resources": [
+  {
+    "resources": ["popup.html", "icons/*", "*.png"],
+    "matches": ["<all_urls>"]
   }
+]
 }

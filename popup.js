@@ -1,19 +1,32 @@
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.action === "updatePopup") {
-    const output = document.getElementById("output");
-    output.innerHTML = `
-      <p><strong>URL:</strong> ${request.data.url}</p>
-      <p><strong>Title:</strong> ${request.data.title}</p>
-      <p><strong>Text Content:</strong></p>
-      <div>${request.data.text.replace(/\n/g, '<br>')}</div>
-    `;
-  }
-});
+// Update to refresh data when popup opens
+document.addEventListener('DOMContentLoaded', () => {
+  const updatePopupData = () => {
+    chrome.storage.local.get(['currentPageData'], (result) => {
+      if (result.currentPageData) {
+        const pageData = result.currentPageData;
+        const siteFaviconElement = document.querySelector('.site-favicon');
+        const siteTitleElement = document.querySelector('.extension-title');
+        const siteUrlElement = document.querySelector('.site-info-text');
+        const siteContentSnippetElement = document.querySelector('.site-content-snippet');
 
-// Inject content script when popup opens
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  chrome.scripting.executeScript({
-    target: { tabId: tabs[0].id },
-    files: ["content-script.js"]
+        if (siteFaviconElement) siteFaviconElement.src = pageData.favicon;
+        if (siteTitleElement) siteTitleElement.textContent = pageData.title || "No Title";
+        if (siteUrlElement) siteUrlElement.textContent = new URL(pageData.url).hostname;
+        if (siteContentSnippetElement) {
+          const snippet = pageData.metaDescription || pageData.text.substring(0, 200) + '...';
+          siteContentSnippetElement.textContent = snippet;
+        }
+      }
+    });
+  };
+
+  // Update immediately
+  updatePopupData();
+
+  // Listen for future updates
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.currentPageData) {
+      updatePopupData();
+    }
   });
 });
