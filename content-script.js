@@ -24,6 +24,7 @@ const createExtensionUI = () => {
 
   const dragHandle = document.createElement('div');
   dragHandle.className = 'magical-drag-handle';
+  // REVERTED: Keep original dots SVG as requested
   dragHandle.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="8" height="14" viewBox="0 0 16 24" fill="#6c757d">
       <circle cx="4" cy="6" r="1"></circle>
@@ -73,7 +74,7 @@ const initExtension = () => {
       if (!isDragging) return;
       const deltaY = moveEvent.clientY - startY;
       let newTop = initialTop + deltaY;
-      const minY = 10; // Minimum 10px from top
+      const minY = 10; 
       const maxY = window.innerHeight - container.offsetHeight - 10; // Minimum 10px from bottom
       newTop = Math.max(minY, Math.min(newTop, maxY));
       container.style.top = `${newTop}px`;

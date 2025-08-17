@@ -42,11 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
           closeBtn.removeEventListener('click', oldCloseListener);
         }
 
-        // Toggle "Show More" functionality with snippet visibility
+        // Keep snippet visible, only toggle full details to avoid empty space
         toggleBtn.addEventListener('click', () => {
           const isHidden = fullDetails.style.display === 'none';
           fullDetails.style.display = isHidden ? 'block' : 'none';
-          snippetElement.style.display = isHidden ? 'none' : 'block';
           toggleBtn.textContent = isHidden ? 'Show Less' : 'Show More';
         }, { once: false });
 
