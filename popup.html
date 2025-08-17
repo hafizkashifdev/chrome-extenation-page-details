@@ -4,74 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="popup.css">
-  <title>IIMagical Popup</title>
 </head>
 <body>
   <div class="container">
     <div class="header">
+      <!-- Close button moved to top right corner -->
+      <button class="close-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       <div class="header-content">
-        <img class="site-favicon" src="" alt="Favicon" width="24" height="24" style="margin-right: 8px; vertical-align: middle;">
-        <h1 class="extension-title">Site Title</h1>
-        <p class="site-info-text">Site URL</p>
-        <p class="site-content-snippet">Content Snippet...</p>
-      </div>
-      <button class="edit-icon-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-      </button>
-    </div>
-
-    <div class="tabs">
-      <button class="tab-button active">Automations</button>
-      <button class="tab-button">Templates</button>
-    </div>
-
-    <div class="card">
-      <div class="card-item">
-        <div class="item-header">
-          <div class="item-icons">
-            <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V7s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-              <line x1="4" y1="22" x2="4" y2="15"></line>
-            </svg>
-          </div>
-          <h3 class="item-title">Export to a new form</h3>
-        </div>
-        <div class="item-actions">
-          <span class="beta-badge">Beta</span>
-          <button class="drag-dots">•••</button>
+        <img class="site-favicon" src="" alt="Favicon" width="24" height="24">
+        <div>
+          <h3 class="extension-title"></h3>
+          <p class="site-description"></p>
         </div>
       </div>
-      <!-- Additional card items... (unchanged) -->
     </div>
-
-    <div class="automation-section">
-      <div class="automation-icons">
-        <svg class="icon gemini-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-        </svg>
-      </div>
-      <h3 class="automation-description">Automate anywhere</h3>
-      <p class="automation-hint">Add info labels on this site to show suggestions.</p>
-      <button class="add-site-info-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add site info
-      </button>
+    <div class="content-snippet"></div>
+    <div class="full-details" style="display: none;">
+      <p class="full-content"></p>
     </div>
-
-    <button class="create-new-automation-btn">Create new automation</button>
+    <button class="toggle-details-btn">Show More</button>
   </div>
-
-  <div class="footer">
-    <span class="footer-logo">IIMagical</span>
-    <span class="share-app-link">Share the app</span>
-  </div>
-
   <script src="popup.js"></script>
 </body>
 </html>

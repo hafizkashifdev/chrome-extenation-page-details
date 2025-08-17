@@ -10,7 +10,7 @@
   transition: all 0.3s ease;
   padding: 8px 12px;
   border-radius: 30px;
-  background-color: #5e46f0; /* Purple from your logo */
+  background-color: #5e46f0;
   box-shadow: 0 4px 12px rgba(94, 70, 240, 0.3);
 }
 
@@ -19,7 +19,7 @@
 }
 
 .magical-extension-container:hover {
-  background-color: #5c6fff; /* Blue from your logo */
+  background-color: #5c6fff;
 }
 
 .magical-hover-close {
@@ -106,35 +106,6 @@
   height: 100%;
 }
 
-.magical-popup-external-close {
-  position: fixed;
-  width: 28px;
-  height: 28px;
-  background: #5e46f0;
-  border-radius: 50%;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  z-index: 10000;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.magical-popup-external-close:hover {
-  background: #5c6fff;
-  transform: scale(1.1);
-}
-
-.magical-popup-external-close svg {
-  width: 16px;
-  height: 16px;
-  stroke: white;
-  stroke-width: 2;
-  display: block;
-}
-
 .magical-extension-popup {
   position: fixed;
   right: 10px;
@@ -155,4 +126,35 @@
   width: 100%;
   height: 100%;
   border: none;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.2s, transform 0.2s;
+  margin-left: 10px; /* Space from header content */
+}
+
+.close-btn:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.1);
+}
+
+.close-btn svg {
+  stroke: #333333;
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 400px) {
+  .magical-extension-popup {
+    width: 90%; /* Responsive width for smaller screens */
+    height: 80%; /* Responsive height */
+  }
+  .close-btn {
+    padding: 3px; /* Adjusted padding for smaller screens */
+  }
 }
