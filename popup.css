@@ -14,17 +14,18 @@ body {
   margin: 0;
   font-size: 14px;
   width: 350px;
-  height: 600px;
+  max-height: 600px; /* Use max-height instead of fixed height */
   overflow-y: auto; /* allow scroll */
+  overflow-x: hidden; /* Hide horizontal scrollbar */
 }
 
 .container {
   padding: 20px;
-  min-height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  font-size: 14px;
 }
 
 .header {
@@ -106,22 +107,18 @@ body {
 .content-snippet {
   font-size: 13px;
   color: var(--text-secondary);
+  padding: 10px 10px;
   line-height: 1.4;
-  max-height: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
 }
 
 .full-details {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
+  padding: 10px 10px;
   max-height: 400px;
   overflow-y: auto;
-  padding-top: 10px;
+  padding-top: 4px;
   display: none;
   white-space: pre-wrap;
   word-wrap: break-word;
