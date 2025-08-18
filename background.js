@@ -1,9 +1,12 @@
-
+// background.js (service worker)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "pageData") {
+  if (!request || !request.action) return;
+  if (request.action === 'pageData') {
+    // Mirror into storage (content script already writes, but keep background synced)
     chrome.storage.local.set({ currentPageData: request.data }, () => {
-      sendResponse({status: "success"});
+      sendResponse({ status: 'success' });
     });
-    return true; 
+    // keep sendResponse asynchronous
+    return true;
   }
 });

@@ -118,7 +118,7 @@ body {
   padding: 10px 10px;
   max-height: 400px;
   overflow-y: auto;
-  padding-top: 4px;
+  padding-top: 0px;
   display: none;
   white-space: pre-wrap;
   word-wrap: break-word;
