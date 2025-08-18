@@ -3,8 +3,8 @@
   --text-primary: #333333;
   --text-secondary: #666666;
   --bg-primary: #ffffff;
-  --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.1);
-  --shadow-hover: 0 4px 15px rgba(94, 70, 240, 0.2);
+  --shadow-light: 0 2px 10px rgba(0,0,0,0.1);
+  --shadow-hover: 0 4px 15px rgba(94,70,240,0.2);
 }
 
 body {
@@ -15,12 +15,12 @@ body {
   font-size: 14px;
   width: 350px;
   height: 600px;
-  overflow: hidden;
+  overflow-y: auto; /* allow scroll */
 }
 
 .container {
   padding: 20px;
-  height: 100%;
+  min-height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -40,23 +40,21 @@ body {
 .header-content {
   display: flex;
   align-items: center;
-  max-width: calc(100% - 30px); /* Leave space for close button */
+  max-width: calc(100% - 30px);
 }
 
 .site-favicon {
   border-radius: 4px;
   box-shadow: var(--shadow-light);
   transition: transform 0.2s;
-  flex-shrink: 0; /* Prevents shrinking */
+  flex-shrink: 0;
   margin-right: 8px;
   width: 24px;
   height: 24px;
-  object-fit: contain; /* Maintain aspect ratio */
+  object-fit: contain;
 }
 
-.site-favicon:hover {
-  transform: scale(1.1);
-}
+.site-favicon:hover { transform: scale(1.1); }
 
 .extension-title {
   font-size: 18px;
@@ -66,7 +64,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 250px; /* Prevent overflow */
+  max-width: 250px;
 }
 
 .site-description {
@@ -76,10 +74,10 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 250px; /* Prevent overflow */
+  max-width: 250px;
 }
 
-/* Close button styles */
+/* Close button */
 .close-btn {
   position: absolute;
   top: 0;
@@ -96,16 +94,13 @@ body {
   justify-content: center;
   align-items: center;
 }
+.close-btn:hover { background-color: #f0f0f0; transform: scale(1.1); }
+.close-btn svg { stroke: #333333; width: 16px; height: 16px; }
 
-.close-btn:hover {
-  background-color: #f0f0f0;
-  transform: scale(1.1);
-}
-
-.close-btn svg {
-  stroke: #333333;
-  width: 16px;
-  height: 16px;
+.loading {
+  display: none;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .content-snippet {
@@ -116,18 +111,19 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: pre-wrap;
-  word-wrap: break-word; /* Ensure long words break */
-  overflow-wrap: anywhere; /* Handle any word breaks */
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .full-details {
   font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.5;
   max-height: 400px;
   overflow-y: auto;
   padding-top: 10px;
   display: none;
+  white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
@@ -141,34 +137,18 @@ body {
   cursor: pointer;
   font-size: 12px;
   transition: background-color 0.2s, transform 0.2s;
-  align-self: flex-start; /* Align button to left */
+  align-self: flex-start;
 }
-
 .toggle-details-btn:hover {
   background-color: #4d3ad8;
   transform: translateY(-2px);
 }
 
 @media (max-width: 400px) {
-  .container {
-    padding: 15px;
-  }
-  .close-btn {
-    width: 24px;
-    height: 24px;
-  }
-  .close-btn svg {
-    width: 14px;
-    height: 14px;
-  }
-  .toggle-details-btn {
-    padding: 6px 12px;
-  }
-  .full-details {
-    max-height: 300px;
-  }
-  .extension-title,
-  .site-description {
-    max-width: 200px; 
-  }
+  .container { padding: 15px; }
+  .close-btn { width: 24px; height: 24px; }
+  .close-btn svg { width: 14px; height: 14px; }
+  .toggle-details-btn { padding: 6px 12px; }
+  .full-details { max-height: 300px; }
+  .extension-title, .site-description { max-width: 200px; }
 }

@@ -1,33 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="popup.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="popup.css" />
+  <title>IIMagical</title>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <!-- Close button moved to top right corner -->
-      <button class="close-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="close-btn" aria-label="Close popup">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
       <div class="header-content">
-        <img class="site-favicon" src="" alt="Favicon" width="24" height="24">
+        <img class="site-favicon" src="" alt="Favicon" width="24" height="24" />
         <div>
-          <h3 class="extension-title"></h3>
-          <p class="site-description"></p>
+          <h3 class="extension-title" title=""></h3>
+          <p class="site-description" title=""></p>
         </div>
       </div>
     </div>
+
+    <div id="loading" class="loading" aria-live="polite">Loading…</div>
+
     <div class="content-snippet"></div>
+
     <div class="full-details" style="display: none;">
       <p class="full-content"></p>
     </div>
-    <button class="toggle-details-btn">Show More</button>
+
+    <button class="toggle-details-btn" aria-expanded="false" aria-controls="full-details">Show More</button>
   </div>
   <script src="popup.js"></script>
 </body>
