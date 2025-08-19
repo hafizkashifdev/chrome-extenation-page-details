@@ -1,8 +1,7 @@
 /* content-script.js
    Robust content extraction for IIMagical Extension
-   - Uses Readability when available
-   - Falls back to collecting all text nodes via TreeWalker
-   - Special handling for Google SERP (includes URLs)
+   - Uses Readability optionally, but always captures full text via TreeWalker
+   - Special handling for Google SERP (includes full titles + URLs)
    - Debounced MutationObserver + history hooks for SPAs (Next.js)
    - Only updates chrome.storage.local when pageData actually changes
 */
@@ -34,39 +33,29 @@
   // ---------- Text extraction ----------
   async function extractGoogleSERP() {
     const results = [];
-    // wide selectors to cover different Google layouts
-    const items = document.querySelectorAll('div.g, div.MjjYud, div.N54PNb, div.U3A9Ac, div.yuRUbf');
+    const items = document.querySelectorAll(
+      'div.g, div.MjjYud, div.N54PNb, div.U3A9Ac, div.yuRUbf'
+    );
     items.forEach((item, idx) => {
-      const title = item.querySelector('h3')?.innerText?.trim() || '';
-      // find a link inside the result block
+      let title = item.querySelector('h3')?.textContent?.trim() || '';
+      if (title.endsWith(' - Google Search')) {
+        title = title.replace(/ - Google Search$/, '');
+      }
+
       const linkEl = item.querySelector('a[href]');
       const link = linkEl ? linkEl.href : '';
-      const snippet = item.querySelector('.VwiC3b, .Uroaid, .MUxGbd, div[role="text"]')?.innerText?.trim() || '';
-      if (title) results.push(`${idx + 1}. ${title}\nURL: ${link}\n${snippet}`);
+      const snippet =
+        item.querySelector('.VwiC3b, .Uroaid, .MUxGbd, div[role="text"]')?.textContent?.trim() ||
+        '';
+      if (title) {
+        results.push(`${idx + 1}. ${title}\nURL: ${link}\n${snippet}`);
+      }
     });
     return results.join('\n\n').trim();
   }
 
-  function extractWithReadability() {
-    try {
-      if (typeof Readability !== 'undefined') {
-        // clone doc to give Readability a stable DOM
-        const docClone = document.cloneNode(true);
-        const reader = new Readability(docClone);
-        const article = reader.parse();
-        if (article && article.textContent) {
-          return article.textContent.trim();
-        }
-      }
-    } catch (e) {
-      // fall through
-      console.warn('Readability parse error', e);
-    }
-    return null;
-  }
-
   function extractAllTextViaTreeWalker() {
-    // Collect all text nodes under body, excluding script/style/noscript
+    if (!document.body) return '';
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node || !node.nodeValue) return NodeFilter.FILTER_REJECT;
@@ -77,89 +66,109 @@
           return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;
-      }
+      },
     });
     const parts = [];
     let n;
     while ((n = walker.nextNode())) {
       parts.push(n.nodeValue.trim());
     }
-    return parts.join('\n').trim();
+    return parts.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
-  // --- Full Text Extraction ---
-async function extractReadableText() {
-  // Google SERP
-  if (location.hostname.includes('google.') && location.pathname === '/search') {
-    const results = [];
-    document.querySelectorAll('div.g, div.MjjYud, div.N54PNb, div.U3A9Ac').forEach((item, i) => {
-      const title = item.querySelector('h3')?.innerText?.trim() || '';
-      const link = item.querySelector('a')?.href || '';
-      const snippet = item.querySelector('.VwiC3b, .Uroaid, .MUxGbd, div[role="text"]')?.innerText?.trim() || '';
-      if (title) {
-        results.push(`${i + 1}. ${title}\nURL: ${link}\n${snippet}`);
-      }
-    });
-    return results.join('\n\n').trim();
-  }
+  async function extractReadableText() {
+    // 1) Google SERP
+    if (location.hostname.includes('google.') && location.pathname === '/search') {
+      const serp = await extractGoogleSERP();
+      if (serp) return serp;
+    }
 
-  // --- Full-page text extraction (everything, no skipping) ---
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-    acceptNode: node => {
-      if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-      if (node.parentElement) {
-        const tag = node.parentElement.tagName;
-        if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME'].includes(tag)) {
-          return NodeFilter.FILTER_REJECT;
+    // Always use TreeWalker for full capture
+    let fullText = extractAllTextViaTreeWalker();
+
+    // Optionally merge in Readability if it gives structured text
+    try {
+      if (typeof Readability !== 'undefined') {
+        const docClone = document.cloneNode(true);
+        const reader = new Readability(docClone);
+        const article = reader.parse();
+        if (article && article.textContent && article.textContent.trim().length > 200) {
+          if (article.textContent.length > fullText.length / 2) {
+            fullText += "\n\n" + article.textContent.trim();
+          }
         }
       }
-      return NodeFilter.FILTER_ACCEPT;
+    } catch (e) {
+      // ignore
     }
-  });
 
-  const textParts = [];
-  let node;
-  while ((node = walker.nextNode())) {
-    textParts.push(node.nodeValue.trim());
+    return fullText;
   }
-
-  // Join all text with spacing
-  return textParts.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
 
   // ---------- pageData builder + storage ----------
   async function buildPageData() {
     const text = await extractReadableText();
-    const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim() ||
-                     document.querySelector('meta[property="og:description"]')?.content?.trim() ||
-                     document.querySelector('meta[name="twitter:description"]')?.content?.trim() ||
-                     null;
+
+    const metaDesc =
+      document.querySelector('meta[name="description"]')?.content?.trim() ||
+      document.querySelector('meta[property="og:description"]')?.content?.trim() ||
+      document.querySelector('meta[name="twitter:description"]')?.content?.trim() ||
+      null;
+
+    // ✅ Fix: Only use real meta description, no fallback to full text
+    let snippet = null;
+    if (metaDesc && metaDesc.trim()) {
+      snippet = metaDesc.trim();
+    }
+
+    const hasUsefulSnippet = !!snippet && snippet.length > 10;
+    const showFullDetails = !hasUsefulSnippet;
+
+    let docTitle = document.title || '';
+    if (location.hostname.includes('google.') && docTitle.endsWith(' - Google Search')) {
+      docTitle = docTitle.replace(/ - Google Search$/, '');
+    }
+
+    let finalUrl = window.location.href;
+    try {
+      const parsed = new URL(finalUrl);
+      if (parsed.hostname.includes('google.') && parsed.pathname === '/search') {
+        finalUrl = `${parsed.protocol}//${parsed.hostname}`;
+      }
+    } catch (e) {}
 
     return {
-      url: window.location.href,
-      title: document.title || '',
+      url: finalUrl,
+      title: docTitle,
       text: text || '',
-      metaDescription: metaDesc, // null when absent
+      metaDescription: metaDesc,
+      snippet: hasUsefulSnippet ? snippet : null,
+      showFullDetails,
       favicon: getFaviconUrl(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
   async function saveIfChanged(pageData) {
     if (!safeStorageAvailable()) return;
+    if (!chrome?.runtime?.id) return; // ✅ Fix: only write if runtime is valid
     try {
       chrome.storage.local.get(['currentPageData'], (res) => {
         const prev = res?.currentPageData || null;
         if (!prev || !deepEqual(prev, pageData)) {
-          chrome.storage.local.set({ currentPageData: pageData }, () => {
-            // optional: notify background (non-blocking)
-            try { chrome.runtime.sendMessage?.({ action: 'pageData', data: pageData }, () => {}); } catch(e){}
-          });
+          try {
+            chrome.storage.local.set({ currentPageData: pageData }, () => {
+              try {
+                chrome.runtime.sendMessage?.({ action: 'pageData', data: pageData }, () => {});
+              } catch (e) {}
+            });
+          } catch (e) {
+            console.warn('storage write failed', e);
+          }
         }
       });
     } catch (e) {
-      // ignore storage errors in weird contexts
-      console.warn('storage write failed', e);
+      console.warn('storage write failed outer', e);
     }
   }
 
@@ -169,7 +178,7 @@ async function extractReadableText() {
     return pd;
   }
 
-  // ---------- UI injection (existing visual launcher) ----------
+  // ---------- UI injection ----------
   function createExtensionUI() {
     const container = document.createElement('div');
     container.className = 'magical-extension-container';
@@ -226,13 +235,12 @@ async function extractReadableText() {
   let extensionUI = null;
   function initUI() {
     if (extensionUI) {
-      try { extensionUI.container.remove(); } catch(e){}
-      try { extensionUI.popup.remove(); } catch(e){}
+      try { extensionUI.container.remove(); } catch (e) {}
+      try { extensionUI.popup.remove(); } catch (e) {}
     }
     extensionUI = createExtensionUI();
     const { container, icon, dragHandle, popup, hoverCloseButton } = extensionUI;
 
-    // drag Y-only
     let isDragging = false;
     let initialTop = 0;
     dragHandle.addEventListener('mousedown', (e) => {
@@ -241,9 +249,15 @@ async function extractReadableText() {
       const startY = e.clientY;
       container.style.cursor = 'grabbing';
       e.preventDefault();
-      const onMouseMove = moveEvent => {
+      const onMouseMove = (moveEvent) => {
         if (!isDragging) return;
-        const newTop = Math.max(10, Math.min(initialTop + (moveEvent.clientY - startY), window.innerHeight - container.offsetHeight - 10));
+        const newTop = Math.max(
+          10,
+          Math.min(
+            initialTop + (moveEvent.clientY - startY),
+            window.innerHeight - container.offsetHeight - 10
+          )
+        );
         container.style.top = `${newTop}px`;
       };
       const onMouseUp = () => {
@@ -256,7 +270,6 @@ async function extractReadableText() {
       document.addEventListener('mouseup', onMouseUp);
     });
 
-    // Icon click: extract+store then open popup (popup reads storage)
     icon.addEventListener('click', async () => {
       if (isDragging) return;
       await extractAndStore();
@@ -271,7 +284,6 @@ async function extractReadableText() {
       container.style.display = 'none';
     });
 
-    // messages from popup
     window.addEventListener('message', async (evt) => {
       if (evt.data === 'closePopup') {
         const frame = document.getElementById('popupFrame');
@@ -281,35 +293,27 @@ async function extractReadableText() {
           extensionUI.container.classList.remove('hidden');
         }
       } else if (evt.data === 'updateData') {
-        // popup asked for a fresh extraction
         await extractAndStore();
       }
     });
   }
 
-  // debounce utility
   function debounce(fn, wait = 400) {
     let t = null;
-    return function(...args) {
+    return function (...args) {
       clearTimeout(t);
       t = setTimeout(() => fn.apply(this, args), wait);
     };
   }
 
-  // Observe DOM changes (for SPA & lazy-loaded content)
   const startObservers = (onChange) => {
-    // MutationObserver debounced
     const observer = new MutationObserver(debounce(onChange, 350));
     try {
       observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
-    } catch (e) {
-      // ignore if body not present yet
-    }
-
-    // History API hooks
+    } catch (e) {}
     const wrapHistory = (type) => {
       const orig = history[type];
-      return function() {
+      return function () {
         const rv = orig.apply(this, arguments);
         onChange();
         return rv;
@@ -318,8 +322,6 @@ async function extractReadableText() {
     history.pushState = wrapHistory('pushState');
     history.replaceState = wrapHistory('replaceState');
     window.addEventListener('popstate', () => onChange());
-
-    // fallback polling for href changes (low frequency)
     let lastHref = location.href;
     setInterval(() => {
       if (location.href !== lastHref) {
@@ -329,30 +331,25 @@ async function extractReadableText() {
     }, 1000);
   };
 
-  // ---------- Message runtime listener (optional) ----------
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
     chrome.runtime.onMessage.addListener((msg, sender, respond) => {
       if (msg && msg.action === 'forceExtract') {
-        extractAndStore().then(pd => respond && respond({ status: 'ok', data: pd })).catch(() => respond && respond({ status: 'err' }));
-        return true; // async
+        extractAndStore()
+          .then((pd) => respond && respond({ status: 'ok', data: pd }))
+          .catch(() => respond && respond({ status: 'err' }));
+        return true;
       }
     });
   }
 
-  // ---------- Bootstrap ----------
   function start() {
     try {
       initUI();
     } catch (e) {
       console.warn('initUI error', e);
     }
-
-    // Run initial extraction
     extractAndStore().catch(() => {});
-
-    // Start observers to keep storage updated on SPA and dynamic changes
     startObservers(() => {
-      // debounce extraction to avoid thrash
       debouncedExtract();
     });
   }
@@ -364,5 +361,4 @@ async function extractReadableText() {
   } else {
     window.addEventListener('load', start);
   }
-
 })();

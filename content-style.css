@@ -17,6 +17,9 @@
 .magical-extension-container.hidden {
   display: none;
 }
+.full-details:empty {
+  display: none !important;
+}
 
 .magical-extension-container:hover {
   background-color: #ffffff
@@ -162,4 +165,4 @@
   .close-btn {
     padding: 3px; /* Adjusted padding for smaller screens */
   }
-}
+} 

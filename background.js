@@ -1,4 +1,3 @@
-// background.js (service worker)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (!request || !request.action) return;
   if (request.action === 'pageData') {

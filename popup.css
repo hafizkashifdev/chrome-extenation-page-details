@@ -14,9 +14,9 @@ body {
   margin: 0;
   font-size: 14px;
   width: 350px;
-  max-height: 600px; /* Use max-height instead of fixed height */
-  overflow-y: auto; /* allow scroll */
-  overflow-x: hidden; /* Hide horizontal scrollbar */
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .container {
@@ -57,15 +57,17 @@ body {
 
 .site-favicon:hover { transform: scale(1.1); }
 
+/* IMPORTANT CHANGE: do NOT truncate the title. Allow wrapping and show full text. */
 .extension-title {
   font-size: 18px;
   font-weight: 500;
   margin: 0;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 250px;
+  white-space: normal; /* allow wrapping */
+  overflow: visible;
+  text-overflow: unset;
+  max-width: 100%; /* allow full width */
+  word-break: break-word;
 }
 
 .site-description {
