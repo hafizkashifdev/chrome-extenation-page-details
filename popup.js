@@ -207,6 +207,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // favicon fallback
   faviconEl.onerror = function () {
-    this.src = chrome.runtime.getURL("icons/icon48.png");
+    this.src = chrome.runtime.getURL("icons/icon16.png");
   };
 });
