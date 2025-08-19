@@ -109,7 +109,7 @@ body {
 .content-snippet {
   font-size: 13px;
   color: var(--text-secondary);
-  padding: 10px 10px;
+  padding: 0 4px;
   line-height: 1.4;
 }
 
@@ -117,16 +117,20 @@ body {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
-  padding: 10px 10px;
+  /* Add a small padding to prevent margin collapsing from the child */
+  padding: 0 4px; /* Removed top padding to prevent the gap */
   max-height: 400px;
   overflow-y: auto;
-  padding-top: 0px;
   display: none;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
 
+.full-content {
+  /* Set a top margin of 0 to prevent the top space */
+  margin-top: 0;
+}
 .toggle-details-btn {
   background-color: var(--primary-purple);
   color: white;
