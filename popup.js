@@ -4,7 +4,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const query = (sel) => document.querySelector(sel);
 
   const ui = {
-    loading: getEl("loading"),
     favicon: query(".site-favicon"),
     title: query(".extension-title"),
     desc: query(".site-description"),
@@ -44,7 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
     remove: (keys) => new Promise(resolve => chrome.storage.local.remove(keys, resolve)),
   };
 
-  const setLoading = (isLoading) => ui.loading.style.display = isLoading ? "block" : "none";
+  const getInitials = (name = '') => {
+    const parts = name.split(' ').filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   const showToast = (text, type = 'error', duration = 3000) => {
     const toastContainer = getEl('toastContainer');
@@ -101,10 +105,11 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const updateUIForAuthState = (isLoggedIn, userData) => {
+    ui.closeBtn.style.display = isLoggedIn ? 'none' : 'flex';
+    
     ui.userProfile.style.display = isLoggedIn ? 'block' : 'none';
     if (isLoggedIn && userData) {
-      ui.userAvatar.src = userData.avatarUrl || chrome.runtime.getURL('icons/icon48.png');
-      ui.userAvatar.alt = userData.name || 'User Avatar';
+      ui.userAvatar.textContent = getInitials(userData.name);
       ui.userMenuName.textContent = userData.name || '';
       ui.userMenuEmail.textContent = userData.email || '';
       Object.values(forms).forEach(form => form.style.display = 'none');
@@ -180,25 +185,21 @@ document.addEventListener("DOMContentLoaded", () => {
     switch (e.target.id) {
       case 'authForm':
         if (data.email.trim() === VALID_USER.email && data.password === VALID_USER.password) {
-          // --- START OF FIX ---
-          // 1. Immediately update all UI elements to the logged-in state to prevent glitches.
           Object.values(forms).forEach(form => form.style.display = 'none');
-          updateUIForAuthState(true, VALID_USER); // This shows the avatar.
+          updateUIForAuthState(true, VALID_USER);
           
           if (ui.fullDetails.dataset.pendingView === 'true') {
-              applyExpandedState(true); // This shows the details and updates button text.
+              applyExpandedState(true);
               ui.fullDetails.dataset.pendingView = 'false';
           }
           
-          ui.mainActionButton.style.display = 'inline-block'; // This shows the button.
+          ui.mainActionButton.style.display = 'inline-block';
 
-          // 2. Now, save the state to storage. The listener will run, but the UI is already correct.
           await storage.set({ 
               user: VALID_USER, 
               isLoggedIn: true,
               popupUIState: { expanded: ui.fullDetails.style.display === 'block' }
           });
-          // --- END OF FIX ---
         } else {
             showToast('Invalid email or password.');
         }
@@ -218,6 +219,9 @@ document.addEventListener("DOMContentLoaded", () => {
       case 'backToSignInLink': showAuthForm(forms.login); break;
       case 'forgotPasswordLink': showAuthForm(forms.forgotPassword); break;
       case 'logoutButton':
+        // FIX: Immediately show the header close button on sign out.
+        ui.closeBtn.style.display = 'flex';
+
         ui.fullDetails.style.display = 'none';
         ui.snippet.style.display = 'none';
         ui.userProfile.style.display = 'none';
@@ -245,10 +249,8 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // --- Initialization ---
   const init = async () => {
-    setLoading(true);
     const { currentPageData } = await storage.get("currentPageData");
     await updateUIFromData(currentPageData);
-    setLoading(false);
 
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "local") {

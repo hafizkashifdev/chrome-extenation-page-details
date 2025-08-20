@@ -115,7 +115,6 @@
       document.querySelector('meta[name="twitter:description"]')?.content?.trim() ||
       null;
 
-    // ✅ Fix: Only use real meta description, no fallback to full text
     let snippet = null;
     if (metaDesc && metaDesc.trim()) {
       snippet = metaDesc.trim();
@@ -151,7 +150,7 @@
 
   async function saveIfChanged(pageData) {
     if (!safeStorageAvailable()) return;
-    if (!chrome?.runtime?.id) return; // ✅ Fix: only write if runtime is valid
+    if (!chrome?.runtime?.id) return;
     try {
       chrome.storage.local.get(['currentPageData'], (res) => {
         const prev = res?.currentPageData || null;
@@ -240,6 +239,13 @@
     }
     extensionUI = createExtensionUI();
     const { container, icon, dragHandle, popup, hoverCloseButton } = extensionUI;
+    
+    // FIX: Set initial logged-in state for the container
+    if (safeStorageAvailable()) {
+      chrome.storage.local.get('isLoggedIn', ({ isLoggedIn }) => {
+        if (isLoggedIn) container.classList.add('logged-in');
+      });
+    }
 
     let isDragging = false;
     let initialTop = 0;
@@ -338,6 +344,17 @@
           .then((pd) => respond && respond({ status: 'ok', data: pd }))
           .catch(() => respond && respond({ status: 'err' }));
         return true;
+      }
+    });
+
+    // FIX: Listen for login state changes to update the main container class
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.isLoggedIn && extensionUI && extensionUI.container) {
+        if (changes.isLoggedIn.newValue === true) {
+          extensionUI.container.classList.add('logged-in');
+        } else {
+          extensionUI.container.classList.remove('logged-in');
+        }
       }
     });
   }

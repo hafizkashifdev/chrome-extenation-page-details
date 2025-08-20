@@ -45,11 +45,18 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  object-fit: cover;
   border: 2px solid #fff;
   box-shadow: var(--shadow-light);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* FIX: Styles for text initials */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-purple);
+  background-color: #e8e5ff;
 }
 .user-avatar:hover {
   transform: scale(1.05);
@@ -130,13 +137,7 @@ body {
   stroke: #333333;
   width: 16px;
   height: 16px;
-  pointer-events: none; /* FIX: Makes the icon 'invisible' to clicks, so the parent button is always clicked. */
-}
-
-.loading {
-  display: none;
-  font-size: 12px;
-  color: var(--text-secondary);
+  pointer-events: none;
 }
 
 .content-snippet {
@@ -329,8 +330,13 @@ body {
   color: var(--text-light);
 }
 
+.menu-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .menu-item {
-  width: 100%;
   text-align: left;
   background: none;
   border: none;
@@ -338,11 +344,19 @@ body {
   cursor: pointer;
   font-size: 13px;
   color: var(--text-secondary);
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s, text-decoration 0.2s;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .menu-item:hover {
-  background-color: var(--bg-secondary);
+  background-color: transparent;
+  color: var(--primary-purple);
+  text-decoration: underline;
+}
+
+.history-link {
+  text-align: right;
   color: var(--primary-purple);
 }
 
@@ -363,7 +377,7 @@ body {
   left: 0;
   width: 100%;
   z-index: 2000;
-  pointer-events: none; /* Allow clicks to pass through the container */
+  pointer-events: none;
 }
 
 .toast {
@@ -373,13 +387,13 @@ body {
   color: white;
   text-align: center;
   opacity: 0;
-  transform: translateY(-100%); /* Start hidden above the viewport */
+  transform: translateY(-100%);
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .toast.show {
   opacity: 1;
-  transform: translateY(0); /* Animate down into view */
+  transform: translateY(0);
 }
 
 .toast.error {
