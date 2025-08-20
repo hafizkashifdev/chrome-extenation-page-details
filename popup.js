@@ -45,13 +45,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const SPECIAL_CHARS_REGEX = new RegExp(`[${'!@#$%^&*()_+-=[]{}|;:,.<>?'.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
 
   // --- Helper Functions ---
-  // FINAL FIX: This robust storage handler will fail silently and not produce any errors.
   const storage = {
     get: (keys) => new Promise((resolve) => {
       chrome.storage.local.get(keys, (result) => {
         if (chrome.runtime.lastError) {
           console.warn("Storage 'get' interrupted:", chrome.runtime.lastError.message);
-          return; // Exit silently without resolving or rejecting
+          return; 
         }
         resolve(result);
       });
@@ -60,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.storage.local.set(data, () => {
         if (chrome.runtime.lastError) {
           console.warn("Storage 'set' interrupted:", chrome.runtime.lastError.message);
-          return; // Exit silently
+          return;
         }
         resolve();
       });
@@ -69,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.storage.local.remove(keys, () => {
         if (chrome.runtime.lastError) {
           console.warn("Storage 'remove' interrupted:", chrome.runtime.lastError.message);
-          return; // Exit silently
+          return;
         }
         resolve();
       });
@@ -81,20 +80,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (parts.length === 0) return '';
     if (parts.length === 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  };
-
-  const createBreadcrumbFromUrl = (urlString) => {
-    try {
-      const url = new URL(urlString);
-      const parts = url.pathname.split('/').filter(Boolean);
-      let displayPath = parts.join(' > ');
-      if (displayPath.length > 25) {
-        displayPath = '...' + displayPath.slice(-22);
-      }
-      return displayPath;
-    } catch {
-      return "Current Page";
-    }
   };
 
   const showToast = (text, type = 'error', duration = 3000) => {
@@ -186,16 +171,24 @@ document.addEventListener("DOMContentLoaded", () => {
       if(ui.desc) ui.desc.textContent = new URL(pageData.url).hostname;
       if(ui.desc) ui.desc.title = pageData.url;
 
+      let displayUrl = pageData.url.replace(/^https?:\/\//, '');
+      if (displayUrl.length > 35) {
+          displayUrl = displayUrl.substring(0, 32) + '...';
+      }
+
       if (ui.snippetUrl) {
         ui.snippetUrl.title = pageData.url; 
-        let displayUrl = pageData.url.replace(/^https?:\/\//, '');
-        if (displayUrl.length > 35) {
-            displayUrl = displayUrl.substring(0, 32) + '...';
-        }
         ui.snippetUrl.innerHTML = `<a href="${pageData.url}" target="_blank" rel="noopener noreferrer">${displayUrl}</a>`;
       }
+      
+      // CHANGED: Update assistance view header to show the full (truncated) URL
       if (ui.breadcrumbDisplay) {
-        ui.breadcrumbDisplay.textContent = createBreadcrumbFromUrl(pageData.url);
+        let breadcrumbUrl = pageData.url.replace(/^https?:\/\//, '');
+        if (breadcrumbUrl.length > 30) {
+            breadcrumbUrl = breadcrumbUrl.substring(0, 27) + '...';
+        }
+        ui.breadcrumbDisplay.textContent = breadcrumbUrl;
+        ui.breadcrumbDisplay.title = pageData.url; // Full URL on hover
       }
     } catch {
       if(ui.desc) ui.desc.textContent = "";
@@ -351,7 +344,6 @@ document.addEventListener("DOMContentLoaded", () => {
               showToast('You have been signed out.', 'success');
           })
           .catch(err => {
-              // This catch block is a safeguard, but the new storage helper should prevent it from being called.
               console.log("Logout storage cleanup interrupted:", err);
           });
         break;
@@ -400,7 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const init = async () => {
     try {
       const { currentPageData } = await storage.get("currentPageData");
-      if (currentPageData) { // Only update if data is successfully retrieved
+      if (currentPageData) {
         await updateUIFromData(currentPageData);
       }
 
