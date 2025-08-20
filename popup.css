@@ -32,10 +32,9 @@ body {
   flex-direction: column;
   gap: 15px;
   font-size: 14px;
-  position: relative; /* For user profile positioning */
+  position: relative;
 }
 
-/* User Profile (Avatar) */
 .user-profile {
   position: absolute;
   top: 15px;
@@ -87,16 +86,15 @@ body {
 
 .site-favicon:hover { transform: scale(1.1); }
 
-/* IMPORTANT CHANGE: do NOT truncate the title. Allow wrapping and show full text. */
 .extension-title {
   font-size: 18px;
   font-weight: 500;
   margin: 0;
   color: var(--text-primary);
-  white-space: normal; /* allow wrapping */
+  white-space: normal;
   overflow: visible;
   text-overflow: unset;
-  max-width: 100%; /* allow full width */
+  max-width: 100%;
   word-break: break-word;
 }
 
@@ -110,7 +108,6 @@ body {
   max-width: 250px;
 }
 
-/* Close button */
 .close-btn {
   position: absolute;
   top: 0;
@@ -126,9 +123,15 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 20;
 }
 .close-btn:hover { background-color: #f0f0f0; transform: scale(1.1); }
-.close-btn svg { stroke: #333333; width: 16px; height: 16px; }
+.close-btn svg {
+  stroke: #333333;
+  width: 16px;
+  height: 16px;
+  pointer-events: none; /* FIX: Makes the icon 'invisible' to clicks, so the parent button is always clicked. */
+}
 
 .loading {
   display: none;
@@ -147,8 +150,7 @@ body {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
-  /* Add a small padding to prevent margin collapsing from the child */
-  padding: 0 4px; /* Removed top padding to prevent the gap */
+  padding: 0 4px;
   max-height: 400px;
   overflow-y: auto;
   display: none;
@@ -158,7 +160,6 @@ body {
 }
 
 .full-content {
-  /* Set a top margin of 0 to prevent the top space */
   margin-top: 0;
 }
 .auth-wall {
@@ -221,11 +222,6 @@ body {
   border-color: var(--primary-purple);
   box-shadow: 0 0 0 3px rgba(94, 70, 240, 0.15);
 }
-.input-hint {
-  font-size: 11px;
-  color: var(--text-light);
-  margin: 2px 0 0 0;
-}
 .auth-button {
   background-color: var(--primary-purple);
   color: white;
@@ -259,7 +255,6 @@ body {
   text-decoration: underline;
 }
 
-/* Toggle Button */
 .toggle-details-btn {
   background-color: var(--primary-purple);
   color: white;
@@ -280,7 +275,6 @@ body {
 .toggle-details-btn:active {
   transform: translateY(0);
 }
-/* Password Strength Meter */
 .password-strength {
   height: 4px;
   border-radius: 2px;
@@ -302,7 +296,6 @@ body {
   background-color: #52c41a;
   width: 100%;
 }
-/* User Menu */
 .user-menu {
   position: absolute;
   top: 100%;
@@ -353,25 +346,6 @@ body {
   color: var(--primary-purple);
 }
 
-/* Message Styles (for errors/success) */
-.message {
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  margin-bottom: 15px;
-  display: none;
-}
-.message.error {
-  background-color: #ffebee;
-  color: var(--error-color);
-  border: 1px solid #ffcdd2;
-}
-.message.success {
-  background-color: #e8f5e9;
-  color: var(--success-color);
-  border: 1px solid #c8e6c9;
-}
-/* Input error state */
 .input-error {
   border-color: var(--error-color) !important;
 }
@@ -381,6 +355,41 @@ body {
   font-size: 12px;
   margin-top: 4px;
 }
+
+/* Toast Notification Styles */
+.toast-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 2000;
+  pointer-events: none; /* Allow clicks to pass through the container */
+}
+
+.toast {
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-100%); /* Start hidden above the viewport */
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0); /* Animate down into view */
+}
+
+.toast.error {
+  background-color: var(--error-color);
+}
+
+.toast.success {
+  background-color: var(--success-color);
+}
+
 
 @media (max-width: 400px) {
   .container { padding: 15px; }

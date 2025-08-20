@@ -1,517 +1,262 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // --- ORIGINAL DOM REFERENCES ---
-  const loadingEl = document.getElementById("loading");
-  const faviconEl = document.querySelector(".site-favicon");
-  const titleEl = document.querySelector(".extension-title");
-  const descEl = document.querySelector(".site-description");
-  const snippetEl = document.querySelector(".content-snippet");
-  const fullEl = document.querySelector(".full-content");
-  const closeBtn = document.getElementById("popupCloseBtn");
-  const fullDetails = document.querySelector(".full-details");
-  const snippetUrlEl = document.querySelector(".snippet-url");
+  // --- DOM Element References ---
+  const getEl = (id) => document.getElementById(id);
+  const query = (sel) => document.querySelector(sel);
 
-  // --- NEW AUTH DOM REFERENCES ---
-  const mainActionButton = document.getElementById("mainActionButton");
-  const userProfileEl = document.querySelector(".user-profile");
-  const userAvatarEl = document.getElementById("userAvatar");
-  const userMenuEl = document.getElementById("userMenu");
-  const userMenuNameEl = document.getElementById("userMenuName");
-  const userMenuEmailEl = document.getElementById("userMenuEmail");
-  const logoutButton = document.getElementById("logoutButton");
-  const loginFormEl = document.getElementById("loginForm");
-  const signupFormEl = document.getElementById("signupForm");
-  const forgotPasswordFormEl = document.getElementById("forgotPasswordForm");
-  const authFormEl = document.getElementById("authForm");
-  const signupFormElementEl = document.getElementById("signupFormElement");
-  const forgotPasswordFormElementEl = document.getElementById("forgotPasswordFormElement");
-  const showSignUpLink = document.getElementById("showSignUpLink");
-  const showSignInLink = document.getElementById("showSignInLink");
-  const forgotPasswordLink = document.getElementById("forgotPasswordLink");
-  const backToSignInLink = document.getElementById("backToSignInLink");
-  const authMessageEl = document.getElementById("authMessage");
-  const loginPasswordStrength = document.getElementById("loginPasswordStrength");
-  const signupPasswordStrength = document.getElementById("signupPasswordStrength");
+  const ui = {
+    loading: getEl("loading"),
+    favicon: query(".site-favicon"),
+    title: query(".extension-title"),
+    desc: query(".site-description"),
+    snippet: query(".content-snippet"),
+    fullContent: query(".full-content"),
+    fullDetails: query(".full-details"),
+    snippetUrl: query(".snippet-url"),
+    closeBtn: getEl("popupCloseBtn"),
+    mainActionButton: getEl("mainActionButton"),
+    userProfile: query(".user-profile"),
+    userAvatar: getEl("userAvatar"),
+    userMenu: getEl("userMenu"),
+    userMenuName: getEl("userMenuName"),
+    userMenuEmail: getEl("userMenuEmail"),
+    logoutButton: getEl("logoutButton"),
+  };
 
+  const forms = {
+    login: getEl("loginForm"),
+    forgotPassword: getEl("forgotPasswordForm"),
+  };
+
+  const passwordStrengthUI = {
+    login: getEl("loginPasswordStrength"),
+  };
+
+  // --- State & Config ---
   let lastData = null;
-  let isUserLoggedIn = false;
-  let isFullViewActive = false;
+  const VALID_USER = { email: "kashifnazim127@gmail.com", password: "Hafiz@786", name: "Kashif Nazim", avatarUrl: "" };
+  const PASSWORD_REQUIREMENTS = { minLength: 8, upper: 1, lower: 1, num: 1, special: 1 };
+  const SPECIAL_CHARS_REGEX = new RegExp(`[${'!@#$%^&*()_+-=[]{}|;:,.<>?'.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
 
-  // --- PASSWORD VALIDATION CONFIG ---
-  const PASSWORD_REQUIREMENTS = {
-    minLength: 8,
-    requireUppercase: true,
-    requireLowercase: true,
-    requireNumber: true,
-    requireSpecialChar: true
+  // --- Helper Functions ---
+  const storage = {
+    get: (keys) => new Promise(resolve => chrome.storage.local.get(keys, resolve)),
+    set: (data) => new Promise(resolve => chrome.storage.local.set(data, resolve)),
+    remove: (keys) => new Promise(resolve => chrome.storage.local.remove(keys, resolve)),
   };
 
-  const SPECIAL_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const setLoading = (isLoading) => ui.loading.style.display = isLoading ? "block" : "none";
 
-  // --- VALID USER CREDENTIALS ---
-  const VALID_USER = {
-    email: "kashifnazim127@gmail.com",
-    password: "Hafiz@786",
-    name: "Kashif Nazim",
-    avatarUrl: "" // Will use default icon
-  };
+  const showToast = (text, type = 'error', duration = 3000) => {
+    const toastContainer = getEl('toastContainer');
+    if (!toastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = text;
+    
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.classList.add('show');
+    }, 10);
 
-  // --- ORIGINAL HELPER FUNCTIONS ---
-  const setLoading = (isLoading) => (loadingEl.style.display = isLoading ? "block" : "none");
-
-  function safeGetStorage(keys, cb) {
-    if (!chrome?.storage?.local) {
-      cb(null);
-      return;
-    }
-    chrome.storage.local.get(keys, (items) => cb(items));
-  }
-
-  function setPopupUIState(expanded) {
-    if (!chrome?.storage?.local) return;
-    try {
-      chrome.storage.local.set({ popupUIState: { expanded } });
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  function getPopupUIState(cb) {
-    if (!chrome?.storage?.local) {
-      cb({ expanded: null });
-      return;
-    }
-    chrome.storage.local.get("popupUIState", (res) => {
-      cb(res?.popupUIState ?? { expanded: null });
-    });
-  }
-
-  function applyExpandedState(expanded) {
-    if (expanded) {
-      fullDetails.style.display = "block";
-      mainActionButton.textContent = "Show Less";
-      mainActionButton.setAttribute("aria-expanded", "true");
-      isFullViewActive = true;
-    } else {
-      fullDetails.style.display = "none";
-      mainActionButton.textContent = "Show Full Analysis";
-      mainActionButton.setAttribute("aria-expanded", "false");
-      isFullViewActive = false;
-    }
-  }
-
-  // --- NEW AUTH HELPER FUNCTIONS ---
-  const hideAllAuthForms = () => {
-    loginFormEl.style.display = 'none';
-    signupFormEl.style.display = 'none';
-    forgotPasswordFormEl.style.display = 'none';
-    hideMessage();
+    setTimeout(() => {
+      toast.classList.remove('show');
+      toast.addEventListener('transitionend', () => toast.remove());
+    }, duration);
   };
 
   const showAuthForm = (formEl) => {
-    hideAllAuthForms();
+    Object.values(forms).forEach(form => form.style.display = 'none');
     formEl.style.display = 'block';
+    ui.mainActionButton.style.display = 'none';
   };
 
-  const showMessage = (text, type = 'error') => {
-    authMessageEl.textContent = text;
-    authMessageEl.className = `message ${type}`;
-    authMessageEl.style.display = 'block';
+  const applyExpandedState = (expanded) => {
+    ui.fullDetails.style.display = expanded ? "block" : "none";
+    ui.mainActionButton.textContent = expanded ? "Show Less" : "Show Full Analysis";
+    ui.mainActionButton.setAttribute("aria-expanded", String(expanded));
   };
 
-  const hideMessage = () => {
-    authMessageEl.style.display = 'none';
-  };
-
-  function getAuthState(cb) {
-    safeGetStorage(['user', 'isLoggedIn'], (items) => {
-      cb(items);
-    });
-  }
-
-  function setAuthState(userData, loggedIn) {
-    chrome.storage.local.set({ user: userData, isLoggedIn: loggedIn });
-  }
-
-  function clearAuthState() {
-    chrome.storage.local.remove(['user', 'isLoggedIn']);
-  }
-
-  function updateUIForAuthState(loggedIn, userData) {
-    isUserLoggedIn = loggedIn;
-    
-    if (loggedIn && userData) {
-      // User is logged in
-      userProfileEl.style.display = 'block';
-      userAvatarEl.src = userData.avatarUrl || chrome.runtime.getURL('icons/icon48.png');
-      userAvatarEl.alt = userData.name || 'User Avatar';
-      userMenuNameEl.textContent = userData.name || '';
-      userMenuEmailEl.textContent = userData.email || '';
-      mainActionButton.textContent = 'Show Full Analysis';
-      hideAllAuthForms();
-      
-      // Show content snippet if available
-      if (snippetEl.textContent && snippetEl.textContent.trim().length > 0) {
-        snippetEl.style.display = "block";
-      }
-      
-      // If we were trying to see content, show it now
-      if (fullDetails.dataset.pendingView === 'true') {
-        applyExpandedState(true);
-        setPopupUIState(true);
-        fullDetails.dataset.pendingView = 'false';
-      }
-    } else {
-      // User is not logged in
-      userProfileEl.style.display = 'none';
-      userAvatarEl.src = '';
-      userMenuEl.style.display = 'none';
-      mainActionButton.textContent = 'Show Full Analysis';
-      fullDetails.style.display = 'none';
-      snippetEl.style.display = 'none'; // Hide content snippet
-      mainActionButton.setAttribute("aria-expanded", "false");
-      isFullViewActive = false;
-      
-      // Hide auth forms unless we are in the middle of a flow
-      if (fullDetails.dataset.pendingView !== 'true') {
-        hideAllAuthForms();
-      }
-    }
-  }
-
-  // --- PASSWORD VALIDATION FUNCTIONS ---
-  function validatePasswordStrength(password) {
-    let strength = 0;
-    let messages = [];
-    
-    // Length check
-    if (password.length >= PASSWORD_REQUIREMENTS.minLength) {
-      strength += 1;
-    } else {
-      messages.push(`At least ${PASSWORD_REQUIREMENTS.minLength} characters`);
-    }
-    
-    // Uppercase check
-    if (PASSWORD_REQUIREMENTS.requireUppercase && /[A-Z]/.test(password)) {
-      strength += 1;
-    } else if (PASSWORD_REQUIREMENTS.requireUppercase) {
-      messages.push("One uppercase letter");
-    }
-    
-    // Lowercase check
-    if (PASSWORD_REQUIREMENTS.requireLowercase && /[a-z]/.test(password)) {
-      strength += 1;
-    } else if (PASSWORD_REQUIREMENTS.requireLowercase) {
-      messages.push("One lowercase letter");
-    }
-    
-    // Number check
-    if (PASSWORD_REQUIREMENTS.requireNumber && /[0-9]/.test(password)) {
-      strength += 1;
-    } else if (PASSWORD_REQUIREMENTS.requireNumber) {
-      messages.push("One number");
-    }
-    
-    // Special character check
-    if (PASSWORD_REQUIREMENTS.requireSpecialChar && new RegExp(`[${SPECIAL_CHARS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`).test(password)) {
-      strength += 1;
-    } else if (PASSWORD_REQUIREMENTS.requireSpecialChar) {
-      messages.push("One special character");
-    }
-    
-    return { strength, messages };
-  }
-  
-  function updatePasswordStrengthUI(password, strengthElement, inputElement = null) {
-    const { strength, messages } = validatePasswordStrength(password);
-    
-    strengthElement.textContent = '';
-    strengthElement.className = 'password-strength';
-    
+  const updatePasswordStrengthUI = (password, strengthEl, inputEl = null) => {
     if (password.length === 0) {
-      strengthElement.style.display = 'none';
-      if (inputElement) inputElement.classList.remove('input-error');
+      strengthEl.style.display = 'none';
+      if (inputEl) inputEl.classList.remove('input-error');
       return true;
     }
-    
-    strengthElement.style.display = 'block';
-    
-    let strengthClass = '';
-    if (strength <= 2) {
-      strengthClass = 'weak';
-    } else if (strength <= 4) {
-      strengthClass = 'medium';
-    } else {
-      strengthClass = 'strong';
-    }
-    
-    strengthElement.classList.add(strengthClass);
-    
-    if (inputElement) {
-      if (strength >= 4) {
-        inputElement.classList.remove('input-error');
-        return true;
-      } else {
-        inputElement.classList.add('input-error');
-        return false;
-      }
-    }
-    
-    return strength >= 4;
-  }
 
-  // --- ORIGINAL updateUIFromData FUNCTION ---
-  function updateUIFromData(pageData) {
-    if (!pageData) return;
-    try {
-      if (lastData && JSON.stringify(lastData) === JSON.stringify(pageData)) {
-        return;
-      }
-    } catch (e) {}
+    let strength = 0;
+    if (password.length >= PASSWORD_REQUIREMENTS.minLength) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (SPECIAL_CHARS_REGEX.test(password)) strength++;
+
+    strengthEl.style.display = 'block';
+    const strengthClass = strength <= 2 ? 'weak' : strength <= 4 ? 'medium' : 'strong';
+    strengthEl.className = `password-strength ${strengthClass}`;
+
+    const isStrong = strength >= 4;
+    if (inputEl) inputEl.classList.toggle('input-error', !isStrong);
+    return isStrong;
+  };
+
+  const updateUIForAuthState = (isLoggedIn, userData) => {
+    ui.userProfile.style.display = isLoggedIn ? 'block' : 'none';
+    if (isLoggedIn && userData) {
+      ui.userAvatar.src = userData.avatarUrl || chrome.runtime.getURL('icons/icon48.png');
+      ui.userAvatar.alt = userData.name || 'User Avatar';
+      ui.userMenuName.textContent = userData.name || '';
+      ui.userMenuEmail.textContent = userData.email || '';
+      Object.values(forms).forEach(form => form.style.display = 'none');
+    } else {
+      ui.userMenu.style.display = 'none';
+      ui.fullDetails.style.display = 'none';
+      ui.snippet.style.display = 'none';
+    }
+  };
+
+  const updateUIFromData = async (pageData) => {
+    if (!pageData || JSON.stringify(lastData) === JSON.stringify(pageData)) return;
     lastData = pageData;
 
-    faviconEl.src = pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
-    if (pageData.title) {
-      const words = pageData.title.trim().split(/\s+/);
-      titleEl.textContent = words.slice(0, 2).join(" ");
-      titleEl.setAttribute("title", pageData.title);
-    } else {
-      titleEl.textContent = "";
-      titleEl.setAttribute("title", "");
-    }
+    ui.favicon.src = pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
+    ui.title.textContent = pageData.title?.trim().split(/\s+/).slice(0, 2).join(" ") || "";
+    ui.title.title = pageData.title || "";
     try {
-      descEl.textContent = new URL(pageData.url).hostname || "";
-      descEl.setAttribute("title", pageData.url || "");
+      const url = new URL(pageData.url);
+      ui.desc.textContent = url.hostname;
+      ui.desc.title = pageData.url;
+      ui.snippetUrl.innerHTML = `<a href="${pageData.url}" target="_blank" rel="noopener noreferrer">${url.hostname.includes("google.") ? url.hostname : pageData.url}</a>`;
     } catch {
-      descEl.textContent = "";
+      ui.desc.textContent = "";
     }
-    let snippetText = "";
-    if (pageData.metaDescription && pageData.metaDescription.trim()) {
-      snippetText = pageData.metaDescription.trim();
-    } else if (pageData.snippet && pageData.snippet.trim()) {
-      snippetText = pageData.snippet.trim();
-    }
-    if (snippetText.length > 0) {
-      snippetEl.textContent = snippetText;
-      // Only show snippet if user is logged in
-      getAuthState(({ isLoggedIn }) => {
-        if (isLoggedIn) {
-          snippetEl.style.display = "block";
-        } else {
-          snippetEl.style.display = "none";
-        }
-      });
-    } else {
-      snippetEl.style.display = "none";
-      snippetEl.textContent = "";
-    }
-    let displayUrl = pageData.url || "";
-    try {
-      const parsed = new URL(displayUrl);
-      if (parsed.hostname.includes("google.") && parsed.pathname === "/search") {
-        displayUrl = parsed.hostname;
-      }
-    } catch (e) {}
-    if (snippetUrlEl) {
-      snippetUrlEl.innerHTML = `<a href="${pageData.url}" target="_blank" rel="noopener noreferrer">${displayUrl}</a>`;
-    }
-    fullEl.textContent = pageData.text || "";
-    const hasFull = !!(pageData.text && pageData.text.trim().length > 20);
-    if (!hasFull) {
-      mainActionButton.style.display = "none";
-      fullDetails.style.display = "none";
-    } else {
-      mainActionButton.style.display = "inline-block";
-    }
+
+    const snippetText = (pageData.metaDescription || pageData.snippet || "").trim();
+    ui.snippet.textContent = snippetText;
+    ui.fullContent.textContent = pageData.text || "";
+
+    const hasFullContent = pageData.text?.trim().length > 20;
     
-    // Check auth state to update the button and profile
-    getAuthState(({ user, isLoggedIn }) => {
-      updateUIForAuthState(isLoggedIn, user);
-      // Then apply the expanded state based on user preference
-      getPopupUIState((ui) => {
-        const expandedPref = ui?.expanded;
-        if (expandedPref === null || expandedPref === undefined) {
-          applyExpandedState(!!pageData.showFullDetails && hasFull && isLoggedIn);
-        } else {
-          applyExpandedState(!!expandedPref && hasFull && isLoggedIn);
-        }
-      });
-    });
-    setLoading(false);
-  }
-
-  // --- INITIALIZATION ---
-  setLoading(true);
-  safeGetStorage(["currentPageData"], (items) => {
-    updateUIFromData(items?.currentPageData ?? null);
-    setLoading(false);
-  });
-
-  // --- STORAGE AND MESSAGE LISTENERS ---
-  if (chrome?.storage?.onChanged) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "local" && changes.currentPageData) {
-        updateUIFromData(changes.currentPageData.newValue);
-      }
-      if (area === "local" && changes.popupUIState) {
-        const ui = changes.popupUIState.newValue || { expanded: null };
-        chrome.storage.local.get("currentPageData", ({ currentPageData }) => {
-          if (!currentPageData) return;
-          const hasFull = !!(currentPageData.text && currentPageData.text.trim().length > 20);
-          applyExpandedState(!!ui.expanded && hasFull && isUserLoggedIn);
-        });
-      }
-      // Listen for auth state changes
-      if (area === 'local' && (changes.user || changes.isLoggedIn)) {
-        getAuthState(({ user, isLoggedIn }) => {
-          updateUIForAuthState(isLoggedIn, user);
-        });
-      }
-    });
-  }
-
-  window.addEventListener("message", (e) => {
-    if (e.data === "updateData") {
-      setLoading(true);
-      safeGetStorage(["currentPageData"], (items) => {
-        updateUIFromData(items?.currentPageData ?? null);
-        setLoading(false);
-      });
-    }
-  });
-
-  // --- MAIN ACTION BUTTON LOGIC ---
-  mainActionButton.addEventListener("click", () => {
-    const isExpanded = mainActionButton.getAttribute("aria-expanded") === "true";
-    if (isExpanded) {
-      applyExpandedState(false);
-      setPopupUIState(false);
+    const authFormVisible = Object.values(forms).some(form => form.style.display === 'block');
+    if (hasFullContent && !authFormVisible) {
+      ui.mainActionButton.style.display = "inline-block";
     } else {
-      getAuthState(({ isLoggedIn }) => {
-        if (isLoggedIn) {
-          applyExpandedState(true);
-          setPopupUIState(true);
-        } else {
-          fullDetails.dataset.pendingView = 'true';
-          showAuthForm(loginFormEl);
-        }
-      });
+      ui.mainActionButton.style.display = "none";
+    }
+
+    const { user, isLoggedIn } = await storage.get(['user', 'isLoggedIn']);
+    updateUIForAuthState(isLoggedIn, user);
+    ui.snippet.style.display = isLoggedIn && snippetText ? "block" : "none";
+
+    const { popupUIState } = await storage.get("popupUIState");
+    const shouldExpand = popupUIState?.expanded ?? (pageData.showFullDetails && hasFullContent && isLoggedIn);
+    applyExpandedState(shouldExpand);
+
+    if (isLoggedIn && ui.fullDetails.dataset.pendingView === 'true') {
+      applyExpandedState(true);
+      await storage.set({ popupUIState: { expanded: true } });
+      ui.fullDetails.dataset.pendingView = 'false';
+    }
+  };
+
+  // --- Event Handlers ---
+  ui.mainActionButton.addEventListener("click", async () => {
+    const { isLoggedIn } = await storage.get('isLoggedIn');
+    if (isLoggedIn) {
+      const isExpanded = ui.mainActionButton.getAttribute("aria-expanded") === "true";
+      applyExpandedState(!isExpanded);
+      await storage.set({ popupUIState: { expanded: !isExpanded } });
+    } else {
+      ui.fullDetails.dataset.pendingView = 'true';
+      showAuthForm(forms.login);
     }
   });
 
-  // --- AUTH FORM EVENT HANDLERS ---
-  authFormEl.addEventListener('submit', (e) => {
+  document.addEventListener('submit', async (e) => {
     e.preventDefault();
-    hideMessage();
-    
     const formData = new FormData(e.target);
-    const email = formData.get('email').trim();
-    const password = formData.get('password');
-    
-    // Validate credentials
-    if (email === VALID_USER.email && password === VALID_USER.password) {
-      setAuthState(VALID_USER, true);
-      showMessage('Login successful!', 'success');
-      setTimeout(() => hideMessage(), 2000);
-    } else {
-      showMessage('Invalid email or password. Please try again.');
+    const data = Object.fromEntries(formData);
+
+    switch (e.target.id) {
+      case 'authForm':
+        if (data.email.trim() === VALID_USER.email && data.password === VALID_USER.password) {
+          // --- START OF FIX ---
+          // 1. Immediately update all UI elements to the logged-in state to prevent glitches.
+          Object.values(forms).forEach(form => form.style.display = 'none');
+          updateUIForAuthState(true, VALID_USER); // This shows the avatar.
+          
+          if (ui.fullDetails.dataset.pendingView === 'true') {
+              applyExpandedState(true); // This shows the details and updates button text.
+              ui.fullDetails.dataset.pendingView = 'false';
+          }
+          
+          ui.mainActionButton.style.display = 'inline-block'; // This shows the button.
+
+          // 2. Now, save the state to storage. The listener will run, but the UI is already correct.
+          await storage.set({ 
+              user: VALID_USER, 
+              isLoggedIn: true,
+              popupUIState: { expanded: ui.fullDetails.style.display === 'block' }
+          });
+          // --- END OF FIX ---
+        } else {
+            showToast('Invalid email or password.');
+        }
+        break;
+      case 'forgotPasswordFormElement':
+        showToast('If this email is registered, you will receive reset instructions.', 'success');
+        setTimeout(() => showAuthForm(forms.login), 2000);
+        break;
     }
   });
 
-  signupFormElementEl.addEventListener('submit', (e) => {
-    e.preventDefault();
-    hideMessage();
-    
-    const formData = new FormData(e.target);
-    const name = formData.get('name').trim();
-    const email = formData.get('email').trim();
-    const password = formData.get('password');
-    
-    // Validate password strength
-    const isPasswordStrong = updatePasswordStrengthUI(password, signupPasswordStrength, document.getElementById('signupPassword'));
-    
-    if (!isPasswordStrong) {
-      showMessage('Please use a stronger password that meets all requirements.');
-      return;
-    }
-    
-    // Check if email is already registered (in this case, just the one valid user)
-    if (email === VALID_USER.email) {
-      showMessage('This email is already registered. Please sign in instead.');
-      return;
-    }
-    
-    // In a real app, you would send this to your backend
-    showMessage('Account created successfully! Please check your email to verify your account.', 'success');
-    
-    // Simulate successful registration
-    const newUser = { name, email, avatarUrl: "" };
-    setTimeout(() => {
-      setAuthState(newUser, true);
-    }, 1500);
-  });
-
-  forgotPasswordFormElementEl.addEventListener('submit', (e) => {
-    e.preventDefault();
-    hideMessage();
-    
-    const formData = new FormData(e.target);
-    const email = formData.get('email').trim();
-    
-    if (email === VALID_USER.email) {
-      showMessage('Password reset instructions have been sent to your email.', 'success');
-      setTimeout(() => showAuthForm(loginFormEl), 2000);
-    } else {
-      showMessage('If this email is registered, you will receive reset instructions.');
-      setTimeout(() => showAuthForm(loginFormEl), 2000);
-    }
-  });
-
-  // --- PASSWORD STRENGTH REAL-TIME VALIDATION ---
-  document.getElementById('signupPassword').addEventListener('input', (e) => {
-    updatePasswordStrengthUI(e.target.value, signupPasswordStrength, e.target);
-  });
-
-  document.getElementById('loginPassword').addEventListener('input', (e) => {
-    if (e.target.value.length > 0) {
-      loginPasswordStrength.style.display = 'block';
-      updatePasswordStrengthUI(e.target.value, loginPasswordStrength);
-    } else {
-      loginPasswordStrength.style.display = 'none';
-    }
-  });
-
-  // --- AUTH FORM NAVIGATION LINKS ---
-  showSignUpLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm(signupFormEl); });
-  showSignInLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm(loginFormEl); });
-  forgotPasswordLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm(forgotPasswordFormEl); });
-  backToSignInLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm(loginFormEl); });
-
-  // --- USER PROFILE AND MENU MANAGEMENT ---
-  userAvatarEl.addEventListener('click', (e) => {
-    e.stopPropagation();
-    userMenuEl.style.display = userMenuEl.style.display === 'none' ? 'block' : 'none';
-  });
-
-  logoutButton.addEventListener('click', () => {
-    clearAuthState();
-    userMenuEl.style.display = 'none';
-    showMessage('You have been signed out.', 'success');
-    setTimeout(() => hideMessage(), 2000);
-  });
-
-  // Close user menu when clicking outside
   document.addEventListener('click', (e) => {
-    if (!userProfileEl.contains(e.target)) {
-      userMenuEl.style.display = 'none';
-    }
-  });
+    const targetId = e.target.id;
+    if (targetId.startsWith('show') || targetId.startsWith('backTo')) e.preventDefault();
+    
+    switch (targetId) {
+      case 'backToSignInLink': showAuthForm(forms.login); break;
+      case 'forgotPasswordLink': showAuthForm(forms.forgotPassword); break;
+      case 'logoutButton':
+        ui.fullDetails.style.display = 'none';
+        ui.snippet.style.display = 'none';
+        ui.userProfile.style.display = 'none';
+        applyExpandedState(false);
 
-  // --- ORIGINAL CLOSE BUTTON AND FALLBACK ---
-  closeBtn.addEventListener("click", () => {
-    window.parent.postMessage("closePopup", "*");
+        storage.remove(['user', 'isLoggedIn', 'popupUIState']).then(() => {
+            showToast('You have been signed out.', 'success');
+        });
+        break;
+      case 'userAvatar':
+        e.stopPropagation();
+        ui.userMenu.style.display = ui.userMenu.style.display === 'none' ? 'block' : 'none';
+        break;
+      case 'popupCloseBtn':
+        window.parent.postMessage("closePopup", "*");
+        break;
+    }
+    
+    if (!ui.userProfile.contains(e.target)) {
+        ui.userMenu.style.display = 'none';
+    }
   });
   
-  faviconEl.onerror = function () {
-    this.src = chrome.runtime.getURL("icons/icon16.png");
+  getEl('loginPassword').addEventListener('input', (e) => updatePasswordStrengthUI(e.target.value, passwordStrengthUI.login));
+  
+  // --- Initialization ---
+  const init = async () => {
+    setLoading(true);
+    const { currentPageData } = await storage.get("currentPageData");
+    await updateUIFromData(currentPageData);
+    setLoading(false);
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local") {
+        if (changes.currentPageData) updateUIFromData(changes.currentPageData.newValue);
+        if (changes.user || changes.isLoggedIn) init();
+      }
+    });
   };
+
+  init();
 });

@@ -38,7 +38,6 @@
     </div>
 
     <div id="loading" class="loading" aria-live="polite">Loading…</div>
-    <div id="authMessage" class="message" style="display: none;"></div>
 
     <div class="content-snippet" style="display: none;"></div>
 
@@ -63,39 +62,6 @@
 
         <button type="submit" class="auth-button" id="authSubmitButton">Sign In</button>
 
-        <p class="auth-footer">
-          Don't have an account? <a href="#" id="showSignUpLink">Sign up</a>
-        </p>
-      </form>
-    </div>
-
-    <div class="auth-wall" id="signupForm" style="display: none;">
-      <form class="auth-form" id="signupFormElement">
-        <h3>Create an Account</h3>
-        <p class="auth-subtitle">Get started with IIMagical.</p>
-
-        <div class="input-group">
-          <label for="signupName">Full Name</label>
-          <input type="text" id="signupName" name="name" required placeholder="John Doe">
-        </div>
-
-        <div class="input-group">
-          <label for="signupEmail">Email Address</label>
-          <input type="email" id="signupEmail" name="email" required placeholder="name@company.com">
-        </div>
-
-        <div class="input-group">
-          <label for="signupPassword">Password</label>
-          <input type="password" id="signupPassword" name="password" required placeholder="••••••••">
-          <div class="password-strength" id="signupPasswordStrength"></div>
-          <p class="input-hint">Must be at least 8 characters with uppercase, lowercase, number and special character.</p>
-        </div>
-
-        <button type="submit" class="auth-button" id="signupSubmitButton">Sign Up</button>
-
-        <p class="auth-footer">
-          Already have an account? <a href="#" id="showSignInLink">Sign in</a>
-        </p>
       </form>
     </div>
 
@@ -124,6 +90,9 @@
     <button class="toggle-details-btn" aria-expanded="false" aria-controls="full-details" id="mainActionButton">Show Full Analysis</button>
 
   </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+  
   <script src="popup.js"></script>
 </body>
 </html>
