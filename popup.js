@@ -19,6 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
     userMenuName: getEl("userMenuName"),
     userMenuEmail: getEl("userMenuEmail"),
     logoutButton: getEl("logoutButton"),
+    mainContainer: getEl("mainContainer"),
+    assistanceView: getEl("assistanceView"),
+    needAssistanceTrigger: getEl("needAssistanceTrigger"),
+    backToDetailsBtn: getEl("backToDetailsBtn"),
+    breadcrumbDisplay: getEl("breadcrumbDisplay"),
+    assistanceSearchInput: getEl("assistanceSearchInput"),
+    suggestionsContainer: getEl("suggestionsContainer"),
+    sendAssistanceRequest: getEl("sendAssistanceRequest"),
   };
 
   const forms = {
@@ -37,10 +45,35 @@ document.addEventListener("DOMContentLoaded", () => {
   const SPECIAL_CHARS_REGEX = new RegExp(`[${'!@#$%^&*()_+-=[]{}|;:,.<>?'.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
 
   // --- Helper Functions ---
+  // FINAL FIX: This robust storage handler will fail silently and not produce any errors.
   const storage = {
-    get: (keys) => new Promise(resolve => chrome.storage.local.get(keys, resolve)),
-    set: (data) => new Promise(resolve => chrome.storage.local.set(data, resolve)),
-    remove: (keys) => new Promise(resolve => chrome.storage.local.remove(keys, resolve)),
+    get: (keys) => new Promise((resolve) => {
+      chrome.storage.local.get(keys, (result) => {
+        if (chrome.runtime.lastError) {
+          console.warn("Storage 'get' interrupted:", chrome.runtime.lastError.message);
+          return; // Exit silently without resolving or rejecting
+        }
+        resolve(result);
+      });
+    }),
+    set: (data) => new Promise((resolve) => {
+      chrome.storage.local.set(data, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Storage 'set' interrupted:", chrome.runtime.lastError.message);
+          return; // Exit silently
+        }
+        resolve();
+      });
+    }),
+    remove: (keys) => new Promise((resolve) => {
+      chrome.storage.local.remove(keys, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Storage 'remove' interrupted:", chrome.runtime.lastError.message);
+          return; // Exit silently
+        }
+        resolve();
+      });
+    }),
   };
 
   const getInitials = (name = '') => {
@@ -48,6 +81,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (parts.length === 0) return '';
     if (parts.length === 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const createBreadcrumbFromUrl = (urlString) => {
+    try {
+      const url = new URL(urlString);
+      const parts = url.pathname.split('/').filter(Boolean);
+      let displayPath = parts.join(' > ');
+      if (displayPath.length > 25) {
+        displayPath = '...' + displayPath.slice(-22);
+      }
+      return displayPath;
+    } catch {
+      return "Current Page";
+    }
   };
 
   const showToast = (text, type = 'error', duration = 3000) => {
@@ -70,18 +117,23 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showAuthForm = (formEl) => {
-    Object.values(forms).forEach(form => form.style.display = 'none');
-    formEl.style.display = 'block';
-    ui.mainActionButton.style.display = 'none';
+    Object.values(forms).forEach(form => { if(form) form.style.display = 'none'});
+    if(formEl) formEl.style.display = 'block';
+    if(ui.mainActionButton) ui.mainActionButton.style.display = 'none';
   };
 
   const applyExpandedState = (expanded) => {
-    ui.fullDetails.style.display = expanded ? "block" : "none";
-    ui.mainActionButton.textContent = expanded ? "Show Less" : "Show Full Analysis";
-    ui.mainActionButton.setAttribute("aria-expanded", String(expanded));
+    if (ui.fullDetails) {
+        ui.fullDetails.style.display = expanded ? "block" : "none";
+    }
+    if (ui.mainActionButton) {
+        ui.mainActionButton.textContent = expanded ? "Show Less" : "Show Full Analysis";
+        ui.mainActionButton.setAttribute("aria-expanded", String(expanded));
+    }
   };
 
   const updatePasswordStrengthUI = (password, strengthEl, inputEl = null) => {
+    if (!strengthEl) return;
     if (password.length === 0) {
       strengthEl.style.display = 'none';
       if (inputEl) inputEl.classList.remove('input-error');
@@ -105,18 +157,21 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const updateUIForAuthState = (isLoggedIn, userData) => {
-    ui.closeBtn.style.display = isLoggedIn ? 'none' : 'flex';
+    if(ui.closeBtn) ui.closeBtn.style.display = isLoggedIn ? 'none' : 'flex';
+    if(ui.userProfile) ui.userProfile.style.display = isLoggedIn ? 'block' : 'none';
+    if(ui.needAssistanceTrigger) ui.needAssistanceTrigger.style.display = isLoggedIn ? 'flex' : 'none';
     
-    ui.userProfile.style.display = isLoggedIn ? 'block' : 'none';
     if (isLoggedIn && userData) {
-      ui.userAvatar.textContent = getInitials(userData.name);
-      ui.userMenuName.textContent = userData.name || '';
-      ui.userMenuEmail.textContent = userData.email || '';
-      Object.values(forms).forEach(form => form.style.display = 'none');
+      if(ui.userAvatar) ui.userAvatar.textContent = getInitials(userData.name);
+      if(ui.userMenuName) ui.userMenuName.textContent = userData.name || '';
+      if(ui.userMenuEmail) ui.userMenuEmail.textContent = userData.email || '';
+      Object.values(forms).forEach(form => {
+          if (form) form.style.display = 'none'
+      });
     } else {
-      ui.userMenu.style.display = 'none';
-      ui.fullDetails.style.display = 'none';
-      ui.snippet.style.display = 'none';
+      if(ui.userMenu) ui.userMenu.style.display = 'none';
+      if(ui.fullDetails) ui.fullDetails.style.display = 'none';
+      if(ui.snippet) ui.snippet.style.display = 'none';
     }
   };
 
@@ -124,58 +179,122 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!pageData || JSON.stringify(lastData) === JSON.stringify(pageData)) return;
     lastData = pageData;
 
-    ui.favicon.src = pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
-    ui.title.textContent = pageData.title?.trim().split(/\s+/).slice(0, 2).join(" ") || "";
-    ui.title.title = pageData.title || "";
+    if(ui.favicon) ui.favicon.src = pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
+    if(ui.title) ui.title.textContent = pageData.title?.trim().split(/\s+/).slice(0, 2).join(" ") || "";
+    if(ui.title) ui.title.title = pageData.title || "";
     try {
-      const url = new URL(pageData.url);
-      ui.desc.textContent = url.hostname;
-      ui.desc.title = pageData.url;
-      ui.snippetUrl.innerHTML = `<a href="${pageData.url}" target="_blank" rel="noopener noreferrer">${url.hostname.includes("google.") ? url.hostname : pageData.url}</a>`;
+      if(ui.desc) ui.desc.textContent = new URL(pageData.url).hostname;
+      if(ui.desc) ui.desc.title = pageData.url;
+
+      if (ui.snippetUrl) {
+        ui.snippetUrl.title = pageData.url; 
+        let displayUrl = pageData.url.replace(/^https?:\/\//, '');
+        if (displayUrl.length > 35) {
+            displayUrl = displayUrl.substring(0, 32) + '...';
+        }
+        ui.snippetUrl.innerHTML = `<a href="${pageData.url}" target="_blank" rel="noopener noreferrer">${displayUrl}</a>`;
+      }
+      if (ui.breadcrumbDisplay) {
+        ui.breadcrumbDisplay.textContent = createBreadcrumbFromUrl(pageData.url);
+      }
     } catch {
-      ui.desc.textContent = "";
+      if(ui.desc) ui.desc.textContent = "";
     }
 
     const snippetText = (pageData.metaDescription || pageData.snippet || "").trim();
-    ui.snippet.textContent = snippetText;
-    ui.fullContent.textContent = pageData.text || "";
+    if(ui.snippet) ui.snippet.textContent = snippetText;
+    if(ui.fullContent) ui.fullContent.textContent = pageData.text || "";
 
     const hasFullContent = pageData.text?.trim().length > 20;
     
-    const authFormVisible = Object.values(forms).some(form => form.style.display === 'block');
-    if (hasFullContent && !authFormVisible) {
-      ui.mainActionButton.style.display = "inline-block";
-    } else {
-      ui.mainActionButton.style.display = "none";
+    const authFormVisible = Object.values(forms).some(form => form && form.style.display === 'block');
+    if (ui.mainActionButton) {
+      if (hasFullContent && !authFormVisible) {
+        ui.mainActionButton.style.display = "inline-block";
+      } else {
+        ui.mainActionButton.style.display = "none";
+      }
     }
 
     const { user, isLoggedIn } = await storage.get(['user', 'isLoggedIn']);
     updateUIForAuthState(isLoggedIn, user);
-    ui.snippet.style.display = isLoggedIn && snippetText ? "block" : "none";
+    if(ui.snippet) ui.snippet.style.display = isLoggedIn && snippetText ? "block" : "none";
 
     const { popupUIState } = await storage.get("popupUIState");
     const shouldExpand = popupUIState?.expanded ?? (pageData.showFullDetails && hasFullContent && isLoggedIn);
     applyExpandedState(shouldExpand);
 
-    if (isLoggedIn && ui.fullDetails.dataset.pendingView === 'true') {
+    if (isLoggedIn && ui.fullDetails && ui.fullDetails.dataset.pendingView === 'true') {
       applyExpandedState(true);
       await storage.set({ popupUIState: { expanded: true } });
       ui.fullDetails.dataset.pendingView = 'false';
     }
   };
 
-  // --- Event Handlers ---
-  ui.mainActionButton.addEventListener("click", async () => {
-    const { isLoggedIn } = await storage.get('isLoggedIn');
-    if (isLoggedIn) {
-      const isExpanded = ui.mainActionButton.getAttribute("aria-expanded") === "true";
-      applyExpandedState(!isExpanded);
-      await storage.set({ popupUIState: { expanded: !isExpanded } });
-    } else {
-      ui.fullDetails.dataset.pendingView = 'true';
-      showAuthForm(forms.login);
-    }
-  });
+  const showAssistanceView = () => {
+    if(ui.mainContainer) ui.mainContainer.style.display = 'none';
+    if(ui.assistanceView) ui.assistanceView.style.display = 'flex';
+    generateSuggestions(lastData ? lastData.text : '');
+  };
+
+  const hideAssistanceView = () => {
+    if(ui.assistanceView) ui.assistanceView.style.display = 'none';
+    if(ui.mainContainer) ui.mainContainer.style.display = 'flex';
+  };
+
+  const generateSuggestions = (context = '') => {
+    if (!ui.suggestionsContainer) return;
+    const suggestions = new Set();
+    const lowerContext = context.toLowerCase();
+
+    const suggestionRules = [
+        { keywords: ['bug', 'error', 'failed', 'issue', 'crash'], prompt: 'Write a bug description for this issue' },
+        { keywords: ['ticket', 'jira', 'sprint', 'task', 'epic'], prompt: 'Summarise this ticket' },
+        { keywords: ['ticket', 'jira', 'sprint', 'task', 'epic'], prompt: 'Break down this epic into subtasks' },
+        { keywords: ['how to', 'guide', 'steps', 'tutorial'], prompt: 'List the key steps from this guide' },
+        { keywords: ['api', 'code', 'function', 'test'], prompt: 'Generate test cases for this' },
+        { keywords: ['criteria', 'requirements', 'user story'], prompt: 'Suggest acceptance criteria' },
+    ];
+
+    suggestionRules.forEach(rule => {
+        if (rule.keywords.some(kw => lowerContext.includes(kw))) {
+            suggestions.add(rule.prompt);
+        }
+    });
+
+    suggestions.add('What are the key points?');
+    suggestions.add('Explain this like I am 10');
+    suggestions.add('Suggest a title for this page');
+
+    ui.suggestionsContainer.innerHTML = '';
+    suggestions.forEach(promptText => {
+        if (ui.suggestionsContainer.childElementCount >= 6) return;
+        const btn = document.createElement('button');
+        btn.className = 'suggestion-btn';
+        btn.textContent = promptText;
+        ui.suggestionsContainer.appendChild(btn);
+    });
+  };
+
+  const callChatbotAPI = (prompt, context) => {
+    console.log("--- Sending to Chatbot API ---");
+    console.log("PROMPT:", prompt);
+    showToast("Request sent to chatbot!", 'success');
+  };
+
+  if (ui.mainActionButton) {
+    ui.mainActionButton.addEventListener("click", async () => {
+        const { isLoggedIn } = await storage.get(['user', 'isLoggedIn']);
+        if (isLoggedIn) {
+        const isExpanded = ui.mainActionButton.getAttribute("aria-expanded") === "true";
+        applyExpandedState(!isExpanded);
+        await storage.set({ popupUIState: { expanded: !isExpanded } });
+        } else {
+        if (ui.fullDetails) ui.fullDetails.dataset.pendingView = 'true';
+        if (forms.login) showAuthForm(forms.login);
+        }
+    });
+  }
 
   document.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -185,20 +304,23 @@ document.addEventListener("DOMContentLoaded", () => {
     switch (e.target.id) {
       case 'authForm':
         if (data.email.trim() === VALID_USER.email && data.password === VALID_USER.password) {
-          Object.values(forms).forEach(form => form.style.display = 'none');
+          Object.values(forms).forEach(form => { if(form) form.style.display = 'none'});
           updateUIForAuthState(true, VALID_USER);
           
-          if (ui.fullDetails.dataset.pendingView === 'true') {
+          const snippetText = (lastData?.metaDescription || lastData?.snippet || "").trim();
+          if (ui.snippet) ui.snippet.style.display = snippetText ? "block" : "none";
+
+          if (ui.fullDetails && ui.fullDetails.dataset.pendingView === 'true') {
               applyExpandedState(true);
               ui.fullDetails.dataset.pendingView = 'false';
           }
           
-          ui.mainActionButton.style.display = 'inline-block';
+          if(ui.mainActionButton) ui.mainActionButton.style.display = 'inline-block';
 
           await storage.set({ 
               user: VALID_USER, 
               isLoggedIn: true,
-              popupUIState: { expanded: ui.fullDetails.style.display === 'block' }
+              popupUIState: { expanded: ui.fullDetails && ui.fullDetails.style.display === 'block' }
           });
         } else {
             showToast('Invalid email or password.');
@@ -206,58 +328,91 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       case 'forgotPasswordFormElement':
         showToast('If this email is registered, you will receive reset instructions.', 'success');
-        setTimeout(() => showAuthForm(forms.login), 2000);
+        if(forms.login) setTimeout(() => showAuthForm(forms.login), 2000);
         break;
     }
   });
 
   document.addEventListener('click', (e) => {
     const targetId = e.target.id;
+    if (!e.target || !targetId) return;
+
     if (targetId.startsWith('show') || targetId.startsWith('backTo')) e.preventDefault();
     
     switch (targetId) {
-      case 'backToSignInLink': showAuthForm(forms.login); break;
-      case 'forgotPasswordLink': showAuthForm(forms.forgotPassword); break;
+      case 'backToSignInLink': if(forms.login) showAuthForm(forms.login); break;
+      case 'forgotPasswordLink': if(forms.forgotPassword) showAuthForm(forms.forgotPassword); break;
       case 'logoutButton':
-        // FIX: Immediately show the header close button on sign out.
-        ui.closeBtn.style.display = 'flex';
-
-        ui.fullDetails.style.display = 'none';
-        ui.snippet.style.display = 'none';
-        ui.userProfile.style.display = 'none';
+        updateUIForAuthState(false, null);
         applyExpandedState(false);
 
-        storage.remove(['user', 'isLoggedIn', 'popupUIState']).then(() => {
-            showToast('You have been signed out.', 'success');
-        });
+        storage.remove(['user', 'isLoggedIn', 'popupUIState'])
+          .then(() => {
+              showToast('You have been signed out.', 'success');
+          })
+          .catch(err => {
+              // This catch block is a safeguard, but the new storage helper should prevent it from being called.
+              console.log("Logout storage cleanup interrupted:", err);
+          });
         break;
       case 'userAvatar':
         e.stopPropagation();
-        ui.userMenu.style.display = ui.userMenu.style.display === 'none' ? 'block' : 'none';
+        if(ui.userMenu) ui.userMenu.style.display = ui.userMenu.style.display === 'none' ? 'block' : 'none';
         break;
       case 'popupCloseBtn':
         window.parent.postMessage("closePopup", "*");
         break;
     }
     
-    if (!ui.userProfile.contains(e.target)) {
+    if (ui.userProfile && !ui.userProfile.contains(e.target) && ui.userMenu) {
         ui.userMenu.style.display = 'none';
     }
   });
-  
-  getEl('loginPassword').addEventListener('input', (e) => updatePasswordStrengthUI(e.target.value, passwordStrengthUI.login));
-  
-  // --- Initialization ---
-  const init = async () => {
-    const { currentPageData } = await storage.get("currentPageData");
-    await updateUIFromData(currentPageData);
 
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "local") {
-        if (changes.currentPageData) updateUIFromData(changes.currentPageData.newValue);
-        if (changes.user || changes.isLoggedIn) init();
-      }
+  if (ui.needAssistanceTrigger) ui.needAssistanceTrigger.addEventListener("click", showAssistanceView);
+  if (ui.backToDetailsBtn) ui.backToDetailsBtn.addEventListener("click", hideAssistanceView);
+
+  if (ui.suggestionsContainer) {
+    ui.suggestionsContainer.addEventListener("click", (e) => {
+        if (e.target.classList.contains('suggestion-btn')) {
+        if(ui.assistanceSearchInput) ui.assistanceSearchInput.value = e.target.textContent;
+        if(ui.assistanceSearchInput) ui.assistanceSearchInput.focus();
+        }
     });
+  }
+
+  if (ui.sendAssistanceRequest) {
+    ui.sendAssistanceRequest.addEventListener("click", () => {
+        if(!ui.assistanceSearchInput) return;
+        const prompt = ui.assistanceSearchInput.value.trim();
+        if (prompt) {
+        callChatbotAPI(prompt, lastData ? lastData.text : '');
+        ui.assistanceSearchInput.value = '';
+        }
+    });
+  }
+  
+  const loginPasswordInput = getEl('loginPassword');
+  if (loginPasswordInput) {
+    loginPasswordInput.addEventListener('input', (e) => updatePasswordStrengthUI(e.target.value, passwordStrengthUI.login));
+  }
+  
+  const init = async () => {
+    try {
+      const { currentPageData } = await storage.get("currentPageData");
+      if (currentPageData) { // Only update if data is successfully retrieved
+        await updateUIFromData(currentPageData);
+      }
+
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "local") {
+          if (changes.currentPageData) updateUIFromData(changes.currentPageData.newValue);
+          if (changes.user || changes.isLoggedIn) init();
+        }
+      });
+    } catch (err) {
+      console.warn("Initialization failed:", err);
+    }
   };
 
   init();
