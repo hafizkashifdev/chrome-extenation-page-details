@@ -28,9 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const showSignInLink = document.getElementById("showSignInLink");
   const forgotPasswordLink = document.getElementById("forgotPasswordLink");
   const backToSignInLink = document.getElementById("backToSignInLink");
-  const closeLoginForm = document.getElementById("closeLoginForm");
-  const closeSignupForm = document.getElementById("closeSignupForm");
-  const closeForgotPasswordForm = document.getElementById("closeForgotPasswordForm");
   const authMessageEl = document.getElementById("authMessage");
   const loginPasswordStrength = document.getElementById("loginPasswordStrength");
   const signupPasswordStrength = document.getElementById("signupPasswordStrength");
@@ -488,20 +485,6 @@ document.addEventListener("DOMContentLoaded", () => {
   showSignInLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm(loginFormEl); });
   forgotPasswordLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm(forgotPasswordFormEl); });
   backToSignInLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm(loginFormEl); });
-
-  // --- CLOSE BUTTONS FOR AUTH FORMS ---
-  closeLoginForm.addEventListener('click', () => {
-    hideAllAuthForms();
-    fullDetails.dataset.pendingView = 'false';
-  });
-  
-  closeSignupForm.addEventListener('click', () => {
-    hideAllAuthForms();
-  });
-  
-  closeForgotPasswordForm.addEventListener('click', () => {
-    hideAllAuthForms();
-  });
 
   // --- USER PROFILE AND MENU MANAGEMENT ---
   userAvatarEl.addEventListener('click', (e) => {

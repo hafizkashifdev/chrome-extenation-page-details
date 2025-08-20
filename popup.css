@@ -353,33 +353,6 @@ body {
   color: var(--primary-purple);
 }
 
-/* Auth Close Button */
-.auth-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.auth-close-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.auth-close-btn svg {
-  stroke: var(--text-light);
-  width: 14px;
-  height: 14px;
-}
-
 /* Message Styles (for errors/success) */
 .message {
   padding: 10px 12px;

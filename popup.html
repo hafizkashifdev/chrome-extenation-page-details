@@ -9,7 +9,6 @@
 <body>
   <div class="container">
     
-    <!-- User Profile Avatar (Top Right) - Hidden by default -->
     <div class="user-profile" style="display: none;">
       <img src="" alt="User Avatar" class="user-avatar" id="userAvatar">
       <div class="user-menu" id="userMenu" style="display: none;">
@@ -43,14 +42,7 @@
 
     <div class="content-snippet" style="display: none;"></div>
 
-    <!-- Login Form (Hidden by default) -->
     <div class="auth-wall" id="loginForm" style="display: none;">
-      <button class="auth-close-btn" id="closeLoginForm">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
       <form class="auth-form" id="authForm">
         <h3>Sign In to Continue</h3>
         <p class="auth-subtitle">Enter your details to view the full analysis.</p>
@@ -77,14 +69,7 @@
       </form>
     </div>
 
-    <!-- Sign Up Form (Hidden by default) -->
     <div class="auth-wall" id="signupForm" style="display: none;">
-      <button class="auth-close-btn" id="closeSignupForm">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
       <form class="auth-form" id="signupFormElement">
         <h3>Create an Account</h3>
         <p class="auth-subtitle">Get started with IIMagical.</p>
@@ -114,14 +99,7 @@
       </form>
     </div>
 
-    <!-- Forgot Password Form (Hidden by default) -->
     <div class="auth-wall" id="forgotPasswordForm" style="display: none;">
-      <button class="auth-close-btn" id="closeForgotPasswordForm">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
       <form class="auth-form" id="forgotPasswordFormElement">
         <h3>Reset Password</h3>
         <p class="auth-subtitle">Enter your email to receive a reset link.</p>
@@ -139,12 +117,10 @@
       </form>
     </div>
 
-    <!-- The actual full content, now hidden behind the auth state -->
     <div class="full-details" style="display: none;">
       <p class="full-content"></p>
     </div>
 
-    <!-- The button now triggers the auth flow OR toggles content -->
     <button class="toggle-details-btn" aria-expanded="false" aria-controls="full-details" id="mainActionButton">Show Full Analysis</button>
 
   </div>
