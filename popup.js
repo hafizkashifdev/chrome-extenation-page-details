@@ -27,6 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
     assistanceSearchInput: getEl("assistanceSearchInput"),
     suggestionsContainer: getEl("suggestionsContainer"),
     sendAssistanceRequest: getEl("sendAssistanceRequest"),
+    // Elements for play/pause button
+    playPauseBtn: getEl("playPauseBtn"),
+    playIcon: query(".play-icon"),
+    pauseIcon: query(".pause-icon"),
+    tooltipText: query("#playPauseBtn .tooltip-text"),
   };
 
   const forms = {
@@ -39,35 +44,40 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // --- State & Config ---
+  let isPlaying = false; // State for the play/pause button
   let lastData = null;
   const VALID_USER = { email: "kashifnazim127@gmail.com", password: "Hafiz@786", name: "Kashif Nazim", avatarUrl: "" };
   const PASSWORD_REQUIREMENTS = { minLength: 8, upper: 1, lower: 1, num: 1, special: 1 };
   const SPECIAL_CHARS_REGEX = new RegExp(`[${'!@#$%^&*()_+-=[]{}|;:,.<>?'.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
 
   // --- Helper Functions ---
+  // FIX: Added error handling for storage operations to prevent silent failures.
   const storage = {
-    get: (keys) => new Promise((resolve) => {
+    get: (keys) => new Promise((resolve, reject) => {
       chrome.storage.local.get(keys, (result) => {
         if (chrome.runtime.lastError) {
           console.warn("Storage 'get' interrupted:", chrome.runtime.lastError.message);
+          reject(chrome.runtime.lastError);
           return; 
         }
         resolve(result);
       });
     }),
-    set: (data) => new Promise((resolve) => {
+    set: (data) => new Promise((resolve, reject) => {
       chrome.storage.local.set(data, () => {
         if (chrome.runtime.lastError) {
           console.warn("Storage 'set' interrupted:", chrome.runtime.lastError.message);
+          reject(chrome.runtime.lastError);
           return;
         }
         resolve();
       });
     }),
-    remove: (keys) => new Promise((resolve) => {
+    remove: (keys) => new Promise((resolve, reject) => {
       chrome.storage.local.remove(keys, () => {
         if (chrome.runtime.lastError) {
           console.warn("Storage 'remove' interrupted:", chrome.runtime.lastError.message);
+          reject(chrome.runtime.lastError);
           return;
         }
         resolve();
@@ -145,6 +155,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if(ui.closeBtn) ui.closeBtn.style.display = isLoggedIn ? 'none' : 'flex';
     if(ui.userProfile) ui.userProfile.style.display = isLoggedIn ? 'block' : 'none';
     if(ui.needAssistanceTrigger) ui.needAssistanceTrigger.style.display = isLoggedIn ? 'flex' : 'none';
+    // Show/hide the play/pause button based on login state
+    if(ui.playPauseBtn) ui.playPauseBtn.style.display = isLoggedIn ? 'flex' : 'none';
     
     if (isLoggedIn && userData) {
       if(ui.userAvatar) ui.userAvatar.textContent = getInitials(userData.name);
@@ -181,14 +193,13 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.snippetUrl.innerHTML = `<a href="${pageData.url}" target="_blank" rel="noopener noreferrer">${displayUrl}</a>`;
       }
       
-      // CHANGED: Update assistance view header to show the full (truncated) URL
       if (ui.breadcrumbDisplay) {
         let breadcrumbUrl = pageData.url.replace(/^https?:\/\//, '');
         if (breadcrumbUrl.length > 30) {
             breadcrumbUrl = breadcrumbUrl.substring(0, 27) + '...';
         }
         ui.breadcrumbDisplay.textContent = breadcrumbUrl;
-        ui.breadcrumbDisplay.title = pageData.url; // Full URL on hover
+        ui.breadcrumbDisplay.title = pageData.url;
       }
     } catch {
       if(ui.desc) ui.desc.textContent = "";
@@ -209,18 +220,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const { user, isLoggedIn } = await storage.get(['user', 'isLoggedIn']);
-    updateUIForAuthState(isLoggedIn, user);
-    if(ui.snippet) ui.snippet.style.display = isLoggedIn && snippetText ? "block" : "none";
+    try {
+      const { user, isLoggedIn, popupUIState } = await storage.get(['user', 'isLoggedIn', 'popupUIState']);
+      updateUIForAuthState(isLoggedIn, user);
+      if(ui.snippet) ui.snippet.style.display = isLoggedIn && snippetText ? "block" : "none";
 
-    const { popupUIState } = await storage.get("popupUIState");
-    const shouldExpand = popupUIState?.expanded ?? (pageData.showFullDetails && hasFullContent && isLoggedIn);
-    applyExpandedState(shouldExpand);
+      const shouldExpand = popupUIState?.expanded ?? (pageData.showFullDetails && hasFullContent && isLoggedIn);
+      applyExpandedState(shouldExpand);
 
-    if (isLoggedIn && ui.fullDetails && ui.fullDetails.dataset.pendingView === 'true') {
-      applyExpandedState(true);
-      await storage.set({ popupUIState: { expanded: true } });
-      ui.fullDetails.dataset.pendingView = 'false';
+      if (isLoggedIn && ui.fullDetails && ui.fullDetails.dataset.pendingView === 'true') {
+        applyExpandedState(true);
+        await storage.set({ popupUIState: { expanded: true } });
+        ui.fullDetails.dataset.pendingView = 'false';
+      }
+    } catch (error) {
+      console.error("Error updating UI from storage data:", error);
     }
   };
 
@@ -274,18 +288,41 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("PROMPT:", prompt);
     showToast("Request sent to chatbot!", 'success');
   };
+  
+  // --- Event Listeners ---
+
+  if (ui.playPauseBtn) {
+    ui.playPauseBtn.addEventListener("click", () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        console.log("Start clock log");
+        ui.playIcon.style.display = "none";
+        ui.pauseIcon.style.display = "block";
+        ui.tooltipText.textContent = "Pause Clock Log";
+      } else {
+        console.log("Pause clock log");
+        ui.playIcon.style.display = "block";
+        ui.pauseIcon.style.display = "none";
+        ui.tooltipText.textContent = "Start Clock Log";
+      }
+    });
+  }
 
   if (ui.mainActionButton) {
     ui.mainActionButton.addEventListener("click", async () => {
-        const { isLoggedIn } = await storage.get(['user', 'isLoggedIn']);
+      try {
+        const { isLoggedIn } = await storage.get(['isLoggedIn']);
         if (isLoggedIn) {
-        const isExpanded = ui.mainActionButton.getAttribute("aria-expanded") === "true";
-        applyExpandedState(!isExpanded);
-        await storage.set({ popupUIState: { expanded: !isExpanded } });
+          const isExpanded = ui.mainActionButton.getAttribute("aria-expanded") === "true";
+          applyExpandedState(!isExpanded);
+          await storage.set({ popupUIState: { expanded: !isExpanded } });
         } else {
-        if (ui.fullDetails) ui.fullDetails.dataset.pendingView = 'true';
-        if (forms.login) showAuthForm(forms.login);
+          if (ui.fullDetails) ui.fullDetails.dataset.pendingView = 'true';
+          if (forms.login) showAuthForm(forms.login);
         }
+      } catch (error) {
+        console.error("Error handling main action button click:", error);
+      }
     });
   }
 
@@ -297,24 +334,29 @@ document.addEventListener("DOMContentLoaded", () => {
     switch (e.target.id) {
       case 'authForm':
         if (data.email.trim() === VALID_USER.email && data.password === VALID_USER.password) {
-          Object.values(forms).forEach(form => { if(form) form.style.display = 'none'});
-          updateUIForAuthState(true, VALID_USER);
-          
-          const snippetText = (lastData?.metaDescription || lastData?.snippet || "").trim();
-          if (ui.snippet) ui.snippet.style.display = snippetText ? "block" : "none";
+          try {
+            Object.values(forms).forEach(form => { if(form) form.style.display = 'none'});
+            updateUIForAuthState(true, VALID_USER);
+            
+            const snippetText = (lastData?.metaDescription || lastData?.snippet || "").trim();
+            if (ui.snippet) ui.snippet.style.display = snippetText ? "block" : "none";
 
-          if (ui.fullDetails && ui.fullDetails.dataset.pendingView === 'true') {
-              applyExpandedState(true);
-              ui.fullDetails.dataset.pendingView = 'false';
+            if (ui.fullDetails && ui.fullDetails.dataset.pendingView === 'true') {
+                applyExpandedState(true);
+                ui.fullDetails.dataset.pendingView = 'false';
+            }
+            
+            if(ui.mainActionButton) ui.mainActionButton.style.display = 'inline-block';
+
+            await storage.set({ 
+                user: VALID_USER, 
+                isLoggedIn: true,
+                popupUIState: { expanded: ui.fullDetails && ui.fullDetails.style.display === 'block' }
+            });
+          } catch (error) {
+            console.error("Error on successful login:", error);
+            showToast('An error occurred during login.');
           }
-          
-          if(ui.mainActionButton) ui.mainActionButton.style.display = 'inline-block';
-
-          await storage.set({ 
-              user: VALID_USER, 
-              isLoggedIn: true,
-              popupUIState: { expanded: ui.fullDetails && ui.fullDetails.style.display === 'block' }
-          });
         } else {
             showToast('Invalid email or password.');
         }
@@ -344,7 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
               showToast('You have been signed out.', 'success');
           })
           .catch(err => {
-              console.log("Logout storage cleanup interrupted:", err);
+              console.error("Logout storage cleanup failed:", err);
           });
         break;
       case 'userAvatar':
@@ -403,7 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     } catch (err) {
-      console.warn("Initialization failed:", err);
+      console.error("Initialization failed:", err);
     }
   };
 

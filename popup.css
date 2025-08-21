@@ -108,10 +108,88 @@ body {
   word-break: break-word;
 }
 
+.description-container {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Space between description and button */
+  margin-top: 4px;
+}
+
+.play-btn {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 18px; /* Further adjusted size for the circle */
+  height: 18px; /* Further adjusted size for the circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%; /* Makes it a circle */
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.play-btn.playing {
+    background-color: var(--error-color); /* Red background when playing */
+}
+
+.play-btn:not(.playing) {
+    background-color: #e8e5ff; /* Light purple background when paused */
+}
+
+.play-btn svg {
+    color: var(--primary-purple); /* Purple icon color for default state */
+    width: 12px;
+    height: 12px;
+}
+
+.play-btn.playing svg {
+    color: white; /* White icon when playing */
+}
+
+
+.play-btn .tooltip-text {
+  visibility: hidden;
+  width: 120px;
+  background-color: var(--primary-purple);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.play-btn:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+.play-btn .tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--primary-purple) transparent transparent transparent;
+}
+
+
 .site-description {
   font-size: 12px;
   color: var(--text-secondary);
-  margin: 4px 0 0;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -190,7 +268,7 @@ body {
 }
 
 .full-content {
-  margin: 0; /* CHANGED: This removes the extra top/bottom space */
+  margin: 0;
 }
 .auth-wall {
   background: var(--bg-secondary);
