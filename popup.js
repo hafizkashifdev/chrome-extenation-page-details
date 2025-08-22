@@ -52,38 +52,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const SPECIAL_CHARS_REGEX = new RegExp(`[${'!@#$%^&*()_+-=[]{}|;:,.<>?'.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
 
   // --- Helper Functions ---
-  // FIX: Added error handling for storage operations to prevent silent failures.
+  // MODIFIED: This entire 'storage' object is now a message-passing wrapper
   const storage = {
-    get: (keys) => new Promise((resolve, reject) => {
-      chrome.storage.local.get(keys, (result) => {
+    sendMessage: (payload) => new Promise((resolve, reject) => {
+      if (!chrome.runtime?.id) {
+        // Context is already invalidated, reject immediately.
+        return reject(new Error("Extension context invalidated."));
+      }
+      chrome.runtime.sendMessage(payload, (response) => {
         if (chrome.runtime.lastError) {
-          console.warn("Storage 'get' interrupted:", chrome.runtime.lastError.message);
-          reject(chrome.runtime.lastError);
-          return; 
+          return reject(chrome.runtime.lastError);
         }
-        resolve(result);
+        if (response && response.status === 'success') {
+          // For 'get', the data is in response.data, otherwise it's undefined
+          resolve(response.data);
+        } else {
+          reject(new Error(response?.message || 'An unknown error occurred in the background script.'));
+        }
       });
     }),
-    set: (data) => new Promise((resolve, reject) => {
-      chrome.storage.local.set(data, () => {
-        if (chrome.runtime.lastError) {
-          console.warn("Storage 'set' interrupted:", chrome.runtime.lastError.message);
-          reject(chrome.runtime.lastError);
-          return;
-        }
-        resolve();
-      });
-    }),
-    remove: (keys) => new Promise((resolve, reject) => {
-      chrome.storage.local.remove(keys, () => {
-        if (chrome.runtime.lastError) {
-          console.warn("Storage 'remove' interrupted:", chrome.runtime.lastError.message);
-          reject(chrome.runtime.lastError);
-          return;
-        }
-        resolve();
-      });
-    }),
+    get: function(keys) {
+      return this.sendMessage({ action: 'getStorage', keys });
+    },
+    set: function(data) {
+      return this.sendMessage({ action: 'setStorage', data });
+    },
   };
 
   const getInitials = (name = '') => {
@@ -403,14 +396,15 @@ document.addEventListener("DOMContentLoaded", () => {
       case 'logoutButton':
         updateUIForAuthState(false, null);
         applyExpandedState(false);
-
-        storage.remove(['user', 'isLoggedIn', 'popupUIState'])
-          .then(() => {
-              showToast('You have been signed out.', 'success');
-          })
-          .catch(err => {
-              console.error("Logout storage cleanup failed:", err);
-          });
+        // MODIFIED: Delegate logout to background script
+        chrome.runtime.sendMessage({ action: 'logout' }, (response) => {
+          if (chrome.runtime.lastError || response?.status !== 'success') {
+            console.error("Logout failed:", chrome.runtime.lastError || response.message);
+            showToast('Logout failed. Please try again.');
+          } else {
+            showToast('You have been signed out.', 'success');
+          }
+        });
         break;
       case 'userAvatar':
         e.stopPropagation();
@@ -456,6 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const init = async () => {
     try {
+      // Use the new storage wrapper to get data
       const { currentPageData } = await storage.get("currentPageData");
       if (currentPageData) {
         await updateUIFromData(currentPageData);

@@ -9,6 +9,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       break;
 
+    case 'getStorage':
+      chrome.storage.local.get(request.keys, (data) => {
+        if (chrome.runtime.lastError) {
+          sendResponse({ status: 'error', message: chrome.runtime.lastError.message });
+        } else {
+          sendResponse({ status: 'success', data });
+        }
+      });
+      break;
+
+    case 'setStorage':
+      chrome.storage.local.set(request.data, () => {
+        if (chrome.runtime.lastError) {
+          sendResponse({ status: 'error', message: chrome.runtime.lastError.message });
+        } else {
+          sendResponse({ status: 'success' });
+        }
+      });
+      break;
+
     case 'logout':
       // Handle logout in a persistent context to avoid "context invalidated" errors
       chrome.storage.local.remove(['user', 'isLoggedIn', 'popupUIState'], () => {
