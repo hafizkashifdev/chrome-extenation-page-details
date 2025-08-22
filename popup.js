@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const query = (sel) => document.querySelector(sel);
 
   const ui = {
+    faviconContainer: query(".favicon-container"),
     favicon: query(".site-favicon"),
     title: query(".extension-title"),
     desc: query(".site-description"),
@@ -176,7 +177,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!pageData || JSON.stringify(lastData) === JSON.stringify(pageData)) return;
     lastData = pageData;
 
-    if(ui.favicon) ui.favicon.src = pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
+    // Clear any previous fallback
+    if (ui.faviconContainer) {
+      ui.faviconContainer.innerHTML = `<img class="site-favicon" src="" alt="Favicon" width="24" height="24" />`;
+      // Re-select the favicon img element after replacing innerHTML
+      ui.favicon = ui.faviconContainer.querySelector('.site-favicon');
+    }
+
+    if(ui.favicon) {
+      ui.favicon.onerror = () => {
+        const titleChar = (pageData.title || ' ')[0].toUpperCase();
+        const fallbackDiv = document.createElement('div');
+        fallbackDiv.className = 'favicon-fallback';
+        fallbackDiv.textContent = titleChar;
+        
+        if (ui.favicon.parentNode) {
+            ui.favicon.parentNode.replaceChild(fallbackDiv, ui.favicon);
+        }
+      };
+      
+      ui.favicon.src = pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
+    }
+
     if(ui.title) ui.title.textContent = pageData.title?.trim().split(/\s+/).slice(0, 2).join(" ") || "";
     if(ui.title) ui.title.title = pageData.title || "";
     try {
@@ -290,7 +312,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   
   // --- Event Listeners ---
-
   if (ui.playPauseBtn) {
     ui.playPauseBtn.addEventListener("click", () => {
       isPlaying = !isPlaying;
@@ -298,11 +319,13 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Start clock log");
         ui.playIcon.style.display = "none";
         ui.pauseIcon.style.display = "block";
+        ui.playPauseBtn.classList.add('playing'); // Add the 'playing' class
         ui.tooltipText.textContent = "Pause Clock Log";
       } else {
         console.log("Pause clock log");
         ui.playIcon.style.display = "block";
         ui.pauseIcon.style.display = "none";
+        ui.playPauseBtn.classList.remove('playing'); // Remove the 'playing' class
         ui.tooltipText.textContent = "Start Clock Log";
       }
     });

@@ -21,8 +21,9 @@ body {
   font-size: 14px;
   width: 350px;
   max-height: 600px;
-  overflow-y: auto;
   overflow-x: hidden;
+  /* UPDATED: Prevents the main popup body from scrolling */
+  overflow-y: hidden;
 }
 
 .container {
@@ -33,6 +34,8 @@ body {
   gap: 15px;
   font-size: 14px;
   position: relative;
+  /* Set a fixed height for the container to manage internal scrolling */
+  height: 560px; 
 }
 
 .user-profile {
@@ -88,7 +91,6 @@ body {
   box-shadow: var(--shadow-light);
   transition: transform 0.2s;
   flex-shrink: 0;
-  margin-right: 8px;
   width: 24px;
   height: 24px;
   object-fit: contain;
@@ -129,14 +131,11 @@ body {
   border-radius: 50%; /* Makes it a circle */
   transition: background-color 0.2s;
   flex-shrink: 0;
+  background-color: #e8e5ff; /* Default light purple background */
 }
 
 .play-btn.playing {
     background-color: var(--error-color); /* Red background when playing */
-}
-
-.play-btn:not(.playing) {
-    background-color: #e8e5ff; /* Light purple background when paused */
 }
 
 .play-btn svg {
@@ -148,7 +147,6 @@ body {
 .play-btn.playing svg {
     color: white; /* White icon when playing */
 }
-
 
 .play-btn .tooltip-text {
   visibility: hidden;
@@ -259,12 +257,22 @@ body {
   color: var(--text-secondary);
   line-height: 1.5;
   padding: 0 4px;
-  max-height: 150px;
-  overflow-y: auto;
-  display: none;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
+  transition: max-height 0.4s ease-in-out;
+  
+  /* UPDATED: Allow scrolling within this container and set a max height */
+  overflow-y: auto;
+  max-height: 350px;
+}
+
+.full-details.collapsed {
+  max-height: 100px; /* Limit height for the preview */
+  overflow-y: hidden; /* No scrollbar in preview state */
+  position: relative;
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 }
 
 .full-content {
@@ -363,26 +371,24 @@ body {
   text-decoration: underline;
 }
 
-.toggle-details-btn {
-  background-color: var(--primary-purple);
-  color: white;
+#mainActionButton {
+  background-color: transparent;
   border: none;
-  border-radius: 20px;
-  padding: 10px 18px;
+  color: var(--primary-purple);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  text-decoration: none;
+  padding: 4px 0;
   align-self: flex-start;
+  margin-top: 8px;
+  display: none;
 }
-.toggle-details-btn:hover {
-  background-color: var(--primary-purple-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-medium);
+
+#mainActionButton:hover {
+  text-decoration: underline;
 }
-.toggle-details-btn:active {
-  transform: translateY(0);
-}
+
 .password-strength {
   height: 4px;
   border-radius: 2px;
@@ -692,4 +698,28 @@ body {
 @media (max-width: 400px) {
   .container { padding: 15px; }
   .auth-wall { padding: 20px; }
+}
+
+.favicon-container {
+  flex-shrink: 0;
+  margin-right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favicon-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  background-color: #e8e5ff; /* A light purple background */
+  color: var(--primary-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-light);
 }
