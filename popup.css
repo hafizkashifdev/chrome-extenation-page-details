@@ -27,11 +27,10 @@ body {
 }
 
 .container {
-  padding: 20px;
+  /* padding: 8px 20px;  */
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 15px;
   font-size: 14px;
   position: relative;
   /* Set a fixed height for the container to manage internal scrolling */
@@ -246,17 +245,17 @@ body {
 }
 
 .content-snippet {
-  font-size: 13px;
-  color: var(--text-secondary);
-  padding: 0 4px;
+  margin-top: 0;
+  margin-bottom: 0;
   line-height: 1.4;
 }
 
 .full-details {
   font-size: 13px;
   color: var(--text-secondary);
+  padding-top: 2px; /* Adjust as needed */
+  padding-bottom: 2px; /* Adjust as needed */
   line-height: 1.5;
-  padding: 0 4px;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
@@ -276,7 +275,8 @@ body {
 }
 
 .full-content {
-  margin: 0;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .auth-wall {
   background: var(--bg-secondary);

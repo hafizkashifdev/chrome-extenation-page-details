@@ -192,8 +192,14 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.favicon.src = pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
     }
 
-    if(ui.title) ui.title.textContent = pageData.title?.trim().split(/\s+/).slice(0, 2).join(" ") || "";
-    if(ui.title) ui.title.title = pageData.title || "";
+    if(ui.title) {
+        // Updated logic to split by spaces and common symbols like /, -, _, etc.
+        const titleWords = pageData.title?.trim().split(/[\s\/-]+/).filter(Boolean);
+        const displayedTitle = (titleWords?.slice(0, 2).join(" ") || "") || pageData.title;
+        ui.title.textContent = displayedTitle;
+        ui.title.title = pageData.title || "";
+    }
+    
     try {
       if(ui.desc) ui.desc.textContent = new URL(pageData.url).hostname;
       if(ui.desc) ui.desc.title = pageData.url;
@@ -225,6 +231,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if(ui.fullContent) ui.fullContent.textContent = pageData.text || "";
 
     const hasFullContent = pageData.text?.trim().length > 20;
+
+    // --- NEW LOGIC ADDED HERE ---
+    if (hasFullContent) {
+        if(ui.snippet) ui.snippet.style.display = 'block'; // Show snippet
+        if(ui.fullDetails) ui.fullDetails.style.display = 'none'; // Hide full details initially
+    } else {
+        if(ui.snippet) ui.snippet.style.display = 'none'; // Hide snippet
+        if(ui.fullDetails) ui.fullDetails.style.display = 'block'; // Show full details
+    }
     
     const authFormVisible = Object.values(forms).some(form => form && form.style.display === 'block');
     if (ui.mainActionButton) {
@@ -252,7 +267,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error updating UI from storage data:", error);
     }
   };
-
   const showAssistanceView = () => {
     if(ui.mainContainer) ui.mainContainer.style.display = 'none';
     if(ui.assistanceView) ui.assistanceView.style.display = 'flex';
