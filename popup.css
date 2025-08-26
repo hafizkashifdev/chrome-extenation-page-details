@@ -249,7 +249,10 @@ body {
   margin-bottom: 0;
   line-height: 1.4;
 }
-
+.full-details-container {
+  position: relative;
+  margin-top: 10px;
+}
 .full-details {
   font-size: 13px;
   color: var(--text-secondary);
@@ -514,22 +517,34 @@ body {
 
 .toast.success {
   background-color: var(--success-color);
-}
-
-.assistance-trigger-inline {
+}.assistance-trigger-inline {
   position: relative;
   display: flex;
   align-items: center;
   cursor: pointer;
-  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  z-index: 5;
+  margin-top: 8px;
+  margin-left: auto; /* Push to the right */
+  width: fit-content;
 }
+
+.assistance-trigger-inline:hover {
+  background-color: #f0f0f0;
+}
+
 .assistance-trigger-inline .sparkles {
   transition: transform 0.2s ease;
+  fill: var(--primary-purple);
 }
+
 .assistance-trigger-inline:hover .sparkles {
   transform: scale(1.2);
 }
 
+/* Tooltip positioning adjustment */
 .tooltip-text-inline {
   visibility: hidden;
   opacity: 0;
@@ -541,8 +556,7 @@ body {
   position: absolute;
   z-index: 1001;
   bottom: 150%; 
-  left: 50%;
-  transform: translateX(-50%);
+  right: 0;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -561,13 +575,25 @@ body {
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
-  margin-left: -5px;
+  right: 10px;
   border-width: 5px;
   border-style: solid;
   border-color: var(--primary-purple) transparent transparent transparent;
 }
 
+/* Make sure the button and assistance trigger are aligned properly */
+#mainActionButton {
+  margin-top: 8px;
+  display: inline-block;
+}
+
+/* Container for button and assistance trigger */
+.button-assistance-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
 
 .assistance-view {
   position: absolute;
