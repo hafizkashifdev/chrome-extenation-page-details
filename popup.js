@@ -222,13 +222,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (ui.title) {
-      // Updated logic to split by spaces and common symbols like /, -, _, etc.
+      // Split by spaces and common delimiters
       const titleWords = pageData.title
         ?.trim()
         .split(/[\s\/-]+/)
-        .filter(Boolean);
-      const displayedTitle =
-        titleWords?.slice(0, 2).join(" ") || "" || pageData.title;
+        .filter(Boolean)
+        .slice(0, 2) // take only 2 words
+        .map(
+          (word) => (word.length > 18 ? word.slice(0, 14) : word) // enforce max 18 chars
+        );
+
+      const displayedTitle = titleWords.join(" ") || pageData.title || "";
+
       ui.title.textContent = displayedTitle;
       ui.title.title = pageData.title || "";
     }
@@ -278,7 +283,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const hasSnippetContent = snippetText.length > 0;
 
     // --- UPDATED LOGIC ---
-    // Hide both snippet and full details if no content
     if (ui.snippet)
       ui.snippet.style.display = hasSnippetContent ? "block" : "none";
     if (ui.fullDetails) ui.fullDetails.style.display = "none"; // Hide by default
@@ -303,7 +307,6 @@ document.addEventListener("DOMContentLoaded", () => {
       ]);
       updateUIForAuthState(isLoggedIn, user);
 
-      // Only show content if logged in and there's content to show
       const shouldShowContent =
         isLoggedIn && (hasSnippetContent || hasFullContent);
 
@@ -334,6 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error updating UI from storage data:", error);
     }
   };
+
   const showAssistanceView = () => {
     if (ui.mainContainer) ui.mainContainer.style.display = "none";
     if (ui.assistanceView) ui.assistanceView.style.display = "flex";

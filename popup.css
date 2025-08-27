@@ -20,20 +20,20 @@ body {
   margin: 0;
   font-size: 14px;
   width: 350px;
-  max-height: 600px;
-  overflow-x: hidden;
-  /* UPDATED: Prevents the main popup body from scrolling */
-  overflow-y: hidden;
+  height: 600px;          /* fixed popup size */
+  overflow: hidden;       /* prevent body scroll */
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
-  padding: 8px 20px; 
-  box-sizing: border-box;
+  flex: 1;                /* take available height */
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  padding: 8px 20px;
   font-size: 14px;
-  position: relative;
-  height: 560px; 
+  min-height: 0;          /* important for flex children scroll */
 }
 
 .user-profile {
@@ -256,27 +256,23 @@ body {
 .full-details {
   font-size: 13px;
   color: var(--text-secondary);
-  padding-top: 2px; /* Adjust as needed */
-  padding-bottom: 2px; /* Adjust as needed */
+  padding: 2px 0;
   line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
   transition: max-height 0.4s ease-in-out;
-  
-  /* UPDATED: Allow scrolling within this container and set a max height */
+
   overflow-y: auto;
-  max-height: 350px;
+  max-height: 350px; /* scroll inside */
 }
 
 .full-details.collapsed {
-  max-height: 100px; /* Limit height for the preview */
-  overflow-y: hidden; /* No scrollbar in preview state */
-  position: relative;
+  max-height: 100px;
+  overflow-y: hidden;
   -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 }
-
 .full-content {
   margin-top: 0;
   margin-bottom: 0;

@@ -45,9 +45,7 @@
 
       const linkEl = item.querySelector('a[href]');
       const link = linkEl ? linkEl.href : '';
-      const snippet =
-        item.querySelector('.VwiC3b, .Uroaid, .MUxGbd, div[role="text"]')?.textContent?.trim() ||
-        '';
+      const snippet = item.querySelector('.VwiC3b, .Uroaid, .MUxGbd, div[role="text"]')?.textContent?.trim() || '';
       if (title) {
         results.push(`${idx + 1}. ${title}\nURL: ${link}\n${snippet}`);
       }
@@ -157,21 +155,17 @@
 
   // ---------- UI injection into Shadow DOM ----------
   function createExtensionUI() {
-    // 1. Create a host element that will live on the page but contain our isolated UI
     const shadowHost = document.createElement('div');
     shadowHost.id = 'magical-extension-shadow-host';
     document.body.appendChild(shadowHost);
 
-    // 2. Attach a shadow root to it. All our UI will go inside here.
     const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
 
-    // 3. Inject our stylesheet into the shadow root
     const styleLink = document.createElement('link');
     styleLink.rel = 'stylesheet';
     styleLink.href = chrome.runtime.getURL('content-style.css');
     shadowRoot.appendChild(styleLink);
     
-    // 4. Create and append our UI elements to the shadow root
     const container = document.createElement('div');
     container.className = 'magical-extension-container';
     container.innerHTML = `
@@ -200,14 +194,13 @@
     popup.innerHTML = `<iframe src="${chrome.runtime.getURL('popup.html')}" id="popupFrame"></iframe>`;
     shadowRoot.appendChild(popup);
 
-    // Query for elements within the shadow root
     const icon = shadowRoot.querySelector('.magical-extension-icon');
     const dragHandle = shadowRoot.querySelector('.magical-drag-handle');
     const hoverCloseButton = shadowRoot.querySelector('.magical-hover-close');
 
     return { shadowHost, container, icon, dragHandle, popup, hoverCloseButton };
   }
-  
+
   // ---------- Initialization & SPA handling ----------
   let extensionUI = null;
 
@@ -224,38 +217,42 @@
       });
     }
 
+    // ✅ Dragging support (Top <-> Bottom only)
     let isDragging = false;
-    let initialTop = 0;
-    dragHandle.addEventListener('mousedown', (e) => {
+    let startY, startTop;
+
+    dragHandle.addEventListener("mousedown", (e) => {
       isDragging = true;
-      initialTop = shadowHost.getBoundingClientRect().top || 0;
-      const startY = e.clientY;
-      container.style.cursor = 'grabbing';
+      shadowHost.style.position = "fixed";
+
+      const rect = shadowHost.getBoundingClientRect();
+      startY = e.clientY;
+      startTop = rect.top;
+
+      container.style.cursor = "grabbing";
       e.preventDefault();
-      
+
       const onMouseMove = (moveEvent) => {
         if (!isDragging) return;
-        const newTop = Math.max(
-          10,
-          Math.min(
-            initialTop + (moveEvent.clientY - startY),
-            window.innerHeight - container.offsetHeight - 10
-          )
-        );
-        shadowHost.style.top = `${newTop}px`;
-        shadowHost.style.transform = 'translateY(0)'; // Override original transform
+
+        const deltaY = moveEvent.clientY - startY;
+        shadowHost.style.top = `${startTop + deltaY}px`;
+        shadowHost.style.bottom = "auto";
+        shadowHost.style.transform = "none";
       };
-      
+
       const onMouseUp = () => {
         isDragging = false;
-        container.style.cursor = 'grab';
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+        container.style.cursor = "grab";
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
       };
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
     });
 
+    // ✅ Icon click toggles popup
     icon.addEventListener('click', async () => {
       if (isDragging) return;
       await extractAndStore();
@@ -265,11 +262,13 @@
       if (frame) frame.contentWindow.postMessage('updateData', '*');
     });
 
+    // ✅ Close button
     hoverCloseButton.addEventListener('click', (e) => {
       e.stopPropagation();
       shadowHost.style.display = 'none';
     });
 
+    // ✅ Handle messages from popup
     window.addEventListener('message', async (evt) => {
       if (evt.data === 'closePopup') {
         const frame = shadowHost.shadowRoot.getElementById('popupFrame');
