@@ -65,12 +65,20 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   // --- Helper Functions ---
-  // MODIFIED: This entire 'storage' object is now a message-passing wrapper
+  // ENHANCED: Storage wrapper with context validation and fallback
+  const isExtensionContextValid = () => {
+    try {
+      return !!(chrome.runtime && chrome.runtime.id);
+    } catch (error) {
+      return false;
+    }
+  };
+
   const storage = {
     sendMessage: (payload) =>
       new Promise((resolve, reject) => {
-        if (!chrome.runtime?.id) {
-          // Context is already invalidated, reject immediately.
+        if (!isExtensionContextValid()) {
+          // Context is invalid, reject immediately.
           return reject(new Error("Extension context invalidated."));
         }
         chrome.runtime.sendMessage(payload, (response) => {
@@ -207,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (ui.favicon) {
       ui.favicon.onerror = () => {
+        try {
         const titleChar = (pageData.title || " ")[0].toUpperCase();
         const fallbackDiv = document.createElement("div");
         fallbackDiv.className = "favicon-fallback";
@@ -214,11 +223,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (ui.favicon.parentNode) {
           ui.favicon.parentNode.replaceChild(fallbackDiv, ui.favicon);
+          }
+        } catch (error) {
+          console.warn("Favicon fallback failed:", error);
         }
       };
 
+      try {
       ui.favicon.src =
-        pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
+          pageData.favicon || (isExtensionContextValid() ? chrome.runtime.getURL("icons/icon48.png") : "");
+      } catch (error) {
+        console.warn("Failed to set favicon:", error);
+      }
     }
 
     if (ui.title) {
@@ -430,6 +446,22 @@ document.addEventListener("DOMContentLoaded", () => {
   if (ui.mainActionButton) {
     ui.mainActionButton.addEventListener("click", async () => {
       try {
+        // Check context validity before proceeding
+        if (!isExtensionContextValid()) {
+          console.warn("Extension context invalid, using direct storage access");
+          // Fallback to direct storage access
+          chrome.storage.local.get(["isLoggedIn"], (data) => {
+            if (data.isLoggedIn) {
+              const isExpanded =
+                ui.mainActionButton.getAttribute("aria-expanded") === "true";
+              applyExpandedState(!isExpanded);
+              chrome.storage.local.set({ popupUIState: { expanded: !isExpanded } });
+            } else {
+              if (ui.fullDetails) ui.fullDetails.dataset.pendingView = "true";
+              if (forms.login) showAuthForm(forms.login);
+            }
+          });
+        } else {
         const { isLoggedIn } = await storage.get(["isLoggedIn"]);
         if (isLoggedIn) {
           const isExpanded =
@@ -439,9 +471,13 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           if (ui.fullDetails) ui.fullDetails.dataset.pendingView = "true";
           if (forms.login) showAuthForm(forms.login);
+          }
         }
       } catch (error) {
         console.error("Error handling main action button click:", error);
+        // If all else fails, show login form
+        if (ui.fullDetails) ui.fullDetails.dataset.pendingView = "true";
+        if (forms.login) showAuthForm(forms.login);
       }
     });
   }
@@ -525,7 +561,21 @@ document.addEventListener("DOMContentLoaded", () => {
       case "logoutButton":
         updateUIForAuthState(false, null);
         applyExpandedState(false);
-        // MODIFIED: Delegate logout to background script
+        // ENHANCED: Add context validation before sending message
+        try {
+          if (!chrome.runtime || !chrome.runtime.id) {
+            console.warn("Extension context invalid, using direct storage access");
+            // Fallback to direct storage access
+            chrome.storage.local.remove(['user', 'isLoggedIn', 'popupUIState'], () => {
+              if (chrome.runtime.lastError) {
+                console.error("Direct logout failed:", chrome.runtime.lastError);
+                showToast("Logout failed. Please try again.");
+              } else {
+                showToast("You have been signed out.", "success");
+              }
+            });
+          } else {
+            // Use background script if context is valid
         chrome.runtime.sendMessage({ action: "logout" }, (response) => {
           if (chrome.runtime.lastError || response?.status !== "success") {
             console.error(
@@ -537,6 +587,11 @@ document.addEventListener("DOMContentLoaded", () => {
             showToast("You have been signed out.", "success");
           }
         });
+          }
+        } catch (error) {
+          console.error("Logout error:", error);
+          showToast("Logout failed. Please try again.");
+        }
         break;
       case "userAvatar":
         e.stopPropagation();
@@ -589,12 +644,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const init = async () => {
     try {
+      // Check if extension context is valid before proceeding
+      if (!isExtensionContextValid()) {
+        console.warn("Extension context invalid during initialization");
+        return;
+      }
+
       // Use the new storage wrapper to get data
       const { currentPageData } = await storage.get("currentPageData");
       if (currentPageData) {
         await updateUIFromData(currentPageData);
       }
 
+      // Only add storage listener if context is valid
+      if (isExtensionContextValid()) {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area === "local") {
           if (changes.currentPageData)
@@ -602,8 +665,21 @@ document.addEventListener("DOMContentLoaded", () => {
           if (changes.user || changes.isLoggedIn) init();
         }
       });
+      }
     } catch (err) {
       console.error("Initialization failed:", err);
+      // If storage.get fails, try direct access as fallback
+      if (err.message.includes("Extension context invalidated")) {
+        try {
+          chrome.storage.local.get("currentPageData", (data) => {
+            if (data.currentPageData) {
+              updateUIFromData(data.currentPageData);
+            }
+          });
+        } catch (fallbackErr) {
+          console.error("Fallback initialization also failed:", fallbackErr);
+        }
+      }
     }
   };
 
