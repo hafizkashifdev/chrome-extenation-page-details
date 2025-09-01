@@ -29,32 +29,36 @@
       </div>
     </div>
 
-    <div class="header">
-      <div class="header-content">
-        <div class="favicon-container">
-          <img class="site-favicon" src="" alt="Favicon" width="24" height="24" />
-        </div>
-        <div>
-          <h3 class="extension-title" title=""></h3>
-          <div class="description-container">
+    <!-- Brand bar -->
+    <div class="brand-bar">
+      <img src="icons/icon48.png" alt="Logo" class="brand-logo" width="24" height="24" />
+      <span class="brand-name">Consulgenix</span>
+    </div>
+
+    <!-- Hero header card -->
+    <div class="hero-card">
+      <div class="hero-content">
+        <div class="hero-left">
+          <div class="favicon-container">
+            <img class="site-favicon" src="" alt="Favicon" width="24" height="24" />
+          </div>
+          <div class="hero-text">
+            <h3 class="extension-title" title=""></h3>
             <p class="site-description" title=""></p>
-            <button id="playPauseBtn" class="play-btn" style="display: none;">
-              <svg class="play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              <svg class="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-              <span class="tooltip-text">Start Clock Log</span>
-            </button>
-          </div>
-          <div class="url-container">
-            <p class="snippet-url" title=""></p>
-           
+            <div class="breadcrumb-header" id="breadcrumbHeader"></div>
           </div>
         </div>
+        <button id="playPauseBtn" class="play-btn hero-play" style="display: none;">
+          <svg class="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <span class="tooltip-text">Start Clock Log</span>
+        </button>
       </div>
     </div>
 
-    
-
-    <div class="auth-wall" id="loginForm" style="display: none;">
+    <!-- Scrollable content area -->
+    <div class="content-area">
+      <div class="auth-wall" id="loginForm" style="display: none;">
       <form class="auth-form" id="authForm">
         <h3>Sign In to Continue</h3>
         <p class="auth-subtitle">Enter your details to view the full analysis.</p>
@@ -89,6 +93,25 @@
       </form>
     </div>
 
+    <!-- Preview content shown before login -->
+    <div class="preview-content" id="previewContent" style="display: block;">
+      <div class="preview-header">
+        <h4>Page Preview</h4>
+        <p class="preview-subtitle">Here's what we found on this page:</p>
+      </div>
+      <div class="preview-snippet" id="previewSnippet">Loading page analysis...</div>
+      <div class="preview-meta">
+        <div class="preview-meta-item">
+          <span class="meta-label">Content Length:</span>
+          <span class="meta-value" id="contentLength">Analyzing...</span>
+        </div>
+        <div class="preview-meta-item">
+          <span class="meta-label">Key Topics:</span>
+          <span class="meta-value" id="keyTopics">Extracting...</span>
+        </div>
+      </div>
+    </div>
+
     <div class="full-details" style="display: none;">
       <p class="content-snippet" style="display: none;"></p>
       <p class="full-content"></p>
@@ -101,6 +124,7 @@
       <span class="tooltip-text-inline">Need Assistance?</span>
     </div>
     
+    </div> <!-- End content-area -->
    
   </div>
 
@@ -122,7 +146,7 @@
     </div>
   </div>
   <div class="footer">
-    Powered by ConsulMinds AI
+    <span style="font-style: italic; color: #888888;">Powered by </span><span style="font-style: italic; color: #5e46f0;">Consugenix AI</span>
   </div>
 
   <div id="toastContainer" class="toast-container"></div>

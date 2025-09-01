@@ -33,6 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
     playIcon: query(".play-icon"),
     pauseIcon: query(".pause-icon"),
     tooltipText: query("#playPauseBtn .tooltip-text"),
+    breadcrumbHeader: getEl("breadcrumbHeader"),
+    // Preview content elements
+    previewContent: getEl("previewContent"),
+    previewSnippet: getEl("previewSnippet"),
+    contentLength: getEl("contentLength"),
+    keyTopics: getEl("keyTopics"),
   };
 
   const forms = {
@@ -65,45 +71,74 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   // --- Helper Functions ---
-  // ENHANCED: Storage wrapper with context validation and fallback
-  const isExtensionContextValid = () => {
-    try {
-      return !!(chrome.runtime && chrome.runtime.id);
-    } catch (error) {
-      return false;
-    }
-  };
-
+  // Direct storage access functions for popup context with extension context validation
   const storage = {
-    sendMessage: (payload) =>
-      new Promise((resolve, reject) => {
-        if (!isExtensionContextValid()) {
-          // Context is invalid, reject immediately.
-          return reject(new Error("Extension context invalidated."));
+    get: (keys) => new Promise((resolve, reject) => {
+      try {
+        // Check if extension context is still valid
+        if (!chrome.runtime || !chrome.runtime.id) {
+          console.warn("Extension context invalidated, returning empty result");
+          resolve({}); // Return empty object instead of rejecting
+          return;
         }
-        chrome.runtime.sendMessage(payload, (response) => {
+        
+        chrome.storage.local.get(keys, (result) => {
           if (chrome.runtime.lastError) {
-            return reject(chrome.runtime.lastError);
-          }
-          if (response && response.status === "success") {
-            // For 'get', the data is in response.data, otherwise it's undefined
-            resolve(response.data);
+            console.warn("Storage get error:", chrome.runtime.lastError.message);
+            resolve({}); // Return empty object instead of rejecting
           } else {
-            reject(
-              new Error(
-                response?.message ||
-                  "An unknown error occurred in the background script."
-              )
-            );
+            resolve(result);
           }
         });
-      }),
-    get: function (keys) {
-      return this.sendMessage({ action: "getStorage", keys });
-    },
-    set: function (data) {
-      return this.sendMessage({ action: "setStorage", data });
-    },
+      } catch (error) {
+        console.warn("Storage get failed:", error);
+        resolve({}); // Return empty object instead of rejecting
+      }
+    }),
+    set: (data) => new Promise((resolve, reject) => {
+      try {
+        // Check if extension context is still valid
+        if (!chrome.runtime || !chrome.runtime.id) {
+          console.warn("Extension context invalidated, skipping storage set");
+          resolve(); // Resolve instead of reject to prevent error propagation
+          return;
+        }
+        
+        chrome.storage.local.set(data, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("Storage set error:", chrome.runtime.lastError.message);
+            resolve(); // Resolve instead of reject to prevent error propagation
+          } else {
+            resolve();
+          }
+        });
+      } catch (error) {
+        console.warn("Storage set failed:", error);
+        resolve(); // Resolve instead of reject to prevent error propagation
+      }
+    }),
+    remove: (keys) => new Promise((resolve, reject) => {
+      try {
+        // Check if extension context is still valid
+        if (!chrome.runtime || !chrome.runtime.id) {
+          console.warn("Extension context invalidated, skipping storage remove");
+          resolve(); // Resolve instead of reject to prevent error propagation
+          return;
+        }
+        
+        chrome.storage.local.remove(keys, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("Storage remove error:", chrome.runtime.lastError.message);
+            resolve(); // Resolve instead of reject to prevent error propagation
+          } else {
+            resolve();
+          }
+        });
+      } catch (error) {
+        console.warn("Storage remove failed:", error);
+        resolve(); // Resolve instead of reject to prevent error propagation
+      }
+    })
   };
 
   const getInitials = (name = "") => {
@@ -133,11 +168,17 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showAuthForm = (formEl) => {
+    // Hide all other sections first
     Object.values(forms).forEach((form) => {
       if (form) form.style.display = "none";
     });
-    if (formEl) formEl.style.display = "block";
+    if (ui.previewContent) ui.previewContent.style.display = "none";
+    if (ui.fullDetails) ui.fullDetails.style.display = "none";
+    if (ui.snippet) ui.snippet.style.display = "none";
     if (ui.mainActionButton) ui.mainActionButton.style.display = "none";
+    
+    // Show the requested form
+    if (formEl) formEl.style.display = "block";
   };
 
   const applyExpandedState = (expanded) => {
@@ -191,14 +232,86 @@ document.addEventListener("DOMContentLoaded", () => {
       if (ui.userAvatar) ui.userAvatar.textContent = getInitials(userData.name);
       if (ui.userMenuName) ui.userMenuName.textContent = userData.name || "";
       if (ui.userMenuEmail) ui.userMenuEmail.textContent = userData.email || "";
+      
+      // Hide all auth forms and preview content when logged in
       Object.values(forms).forEach((form) => {
         if (form) form.style.display = "none";
       });
+      if (ui.previewContent) ui.previewContent.style.display = "none";
     } else {
+      // User is not logged in - hide user-specific elements
       if (ui.userMenu) ui.userMenu.style.display = "none";
       if (ui.fullDetails) ui.fullDetails.style.display = "none";
       if (ui.snippet) ui.snippet.style.display = "none";
+      
+      // Show the "Show Full Analysis" button for non-logged-in users
+      if (ui.mainActionButton) ui.mainActionButton.style.display = "inline-block";
+      
+      // Hide all auth forms initially
+      Object.values(forms).forEach((form) => {
+        if (form) form.style.display = "none";
+      });
     }
+  };
+
+  const showPreviewContent = (pageData) => {
+    if (!ui.previewContent || !pageData) return;
+    
+    // Hide all auth forms when showing preview content
+    Object.values(forms).forEach((form) => {
+      if (form) form.style.display = "none";
+    });
+    
+    // Show preview snippet
+    if (ui.previewSnippet) {
+      const snippetText = (pageData.metaDescription || pageData.snippet || "").trim();
+      if (snippetText) {
+        ui.previewSnippet.textContent = snippetText.length > 200 
+          ? snippetText.substring(0, 200) + "..." 
+          : snippetText;
+        ui.previewSnippet.style.display = "block";
+      } else {
+        ui.previewSnippet.style.display = "none";
+      }
+    }
+    
+    // Show content length
+    if (ui.contentLength) {
+      const textLength = pageData.text?.length || 0;
+      if (textLength > 0) {
+        const words = Math.ceil(textLength / 5); // Rough estimate
+        ui.contentLength.textContent = `${words} words`;
+      } else {
+        ui.contentLength.textContent = "N/A";
+      }
+    }
+    
+    // Show key topics (extract from title and first few words)
+    if (ui.keyTopics) {
+      const title = pageData.title || "";
+      const firstWords = pageData.text?.split(/\s+/).slice(0, 10).join(" ") || "";
+      const combined = (title + " " + firstWords).toLowerCase();
+      
+      // Extract potential topics (simple keyword extraction)
+      const topics = [];
+      const commonWords = ["the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "is", "are", "was", "were", "be", "been", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "a", "an"];
+      
+      const words = combined.split(/\W+/).filter(word => 
+        word.length > 3 && !commonWords.includes(word)
+      );
+      
+      // Get unique words and limit to 3
+      const uniqueWords = [...new Set(words)].slice(0, 3);
+      if (uniqueWords.length > 0) {
+        ui.keyTopics.textContent = uniqueWords.map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(", ");
+      } else {
+        ui.keyTopics.textContent = "General";
+      }
+    }
+    
+    ui.previewContent.style.display = "block";
   };
 
   const updateUIFromData = async (pageData) => {
@@ -231,7 +344,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
       ui.favicon.src =
-          pageData.favicon || (isExtensionContextValid() ? chrome.runtime.getURL("icons/icon48.png") : "");
+          pageData.favicon || chrome.runtime.getURL("icons/icon48.png");
       } catch (error) {
         console.warn("Failed to set favicon:", error);
       }
@@ -263,10 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
         displayUrl = displayUrl.substring(0, 32) + "...";
       }
 
-      if (ui.snippetUrl) {
-        ui.snippetUrl.title = pageData.url;
-        ui.snippetUrl.innerHTML = `<a href="${pageData.url}" target="_blank" rel="noopener noreferrer">${displayUrl}</a>`;
-      }
+      // snippetUrl is now only used in the full details section, not in hero
 
       if (ui.breadcrumbDisplay) {
         let breadcrumbUrl = pageData.url.replace(/^https?:\/\//, "");
@@ -275,6 +385,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         ui.breadcrumbDisplay.textContent = breadcrumbUrl;
         ui.breadcrumbDisplay.title = pageData.url;
+      }
+      if (ui.breadcrumbHeader) {
+        // Put the same breadcrumb path into the hero header
+        let b = pageData.url.replace(/^https?:\/\//, "");
+        if (b.length > 40) b = b.substring(0, 37) + "...";
+        ui.breadcrumbHeader.textContent = b;
+        ui.breadcrumbHeader.title = pageData.url;
       }
     } catch {
       if (ui.desc) ui.desc.textContent = "";
@@ -307,6 +424,7 @@ document.addEventListener("DOMContentLoaded", () => {
       (form) => form && form.style.display === "block"
     );
 
+    // Button visibility logic - will be refined based on login status later
     if (ui.mainActionButton) {
       if (hasFullContent && !authFormVisible) {
         ui.mainActionButton.style.display = "inline-block";
@@ -321,36 +439,57 @@ document.addEventListener("DOMContentLoaded", () => {
         "isLoggedIn",
         "popupUIState",
       ]);
+      
+      // First, set the auth state which will hide/show appropriate elements
       updateUIForAuthState(isLoggedIn, user);
 
-      const shouldShowContent =
-        isLoggedIn && (hasSnippetContent || hasFullContent);
+      if (isLoggedIn) {
+        // User is logged in - show full content
+        const shouldShowContent =
+          isLoggedIn && (hasSnippetContent || hasFullContent);
 
-      if (ui.snippet)
-        ui.snippet.style.display =
-          shouldShowContent && hasSnippetContent ? "block" : "none";
+        if (ui.snippet)
+          ui.snippet.style.display =
+            shouldShowContent && hasSnippetContent ? "block" : "none";
 
-      const shouldExpand =
-        popupUIState?.expanded ??
-        (pageData.showFullDetails && hasFullContent && isLoggedIn);
+        const shouldExpand =
+          popupUIState?.expanded ??
+          (pageData.showFullDetails && hasFullContent && isLoggedIn);
 
-      if (shouldShowContent && hasFullContent) {
-        if (ui.fullDetails) ui.fullDetails.style.display = "block";
-        applyExpandedState(shouldExpand);
-      }
+        if (shouldShowContent && hasFullContent) {
+          if (ui.fullDetails) ui.fullDetails.style.display = "block";
+          applyExpandedState(shouldExpand);
+        }
 
-      if (
-        isLoggedIn &&
-        ui.fullDetails &&
-        ui.fullDetails.dataset.pendingView === "true"
-      ) {
-        if (ui.fullDetails) ui.fullDetails.style.display = "block";
-        applyExpandedState(true);
-        await storage.set({ popupUIState: { expanded: true } });
-        ui.fullDetails.dataset.pendingView = "false";
+        if (
+          ui.fullDetails &&
+          ui.fullDetails.dataset.pendingView === "true"
+        ) {
+          if (ui.fullDetails) ui.fullDetails.style.display = "block";
+          applyExpandedState(true);
+          await storage.set({ popupUIState: { expanded: true } });
+          ui.fullDetails.dataset.pendingView = "false";
+        }
+      } else {
+        // User is not logged in - show preview content and hide any auth forms
+        Object.values(forms).forEach((form) => {
+          if (form) form.style.display = "none";
+        });
+        showPreviewContent(pageData);
+        
+        // Show the "Show Full Analysis" button for non-logged-in users
+        if (ui.mainActionButton) ui.mainActionButton.style.display = "inline-block";
       }
     } catch (error) {
       console.error("Error updating UI from storage data:", error);
+      // If there's an error, show preview content as fallback and hide auth forms
+      Object.values(forms).forEach((form) => {
+        if (form) form.style.display = "none";
+      });
+      showPreviewContent(pageData);
+      
+      // Show the "Show Full Analysis" button as fallback for non-logged-in users
+      if (ui.mainActionButton) ui.mainActionButton.style.display = "inline-block";
     }
   };
 
@@ -445,38 +584,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (ui.mainActionButton) {
     ui.mainActionButton.addEventListener("click", async () => {
-      try {
-        // Check context validity before proceeding
-        if (!isExtensionContextValid()) {
-          console.warn("Extension context invalid, using direct storage access");
-          // Fallback to direct storage access
-          chrome.storage.local.get(["isLoggedIn"], (data) => {
-            if (data.isLoggedIn) {
-              const isExpanded =
-                ui.mainActionButton.getAttribute("aria-expanded") === "true";
-              applyExpandedState(!isExpanded);
-              chrome.storage.local.set({ popupUIState: { expanded: !isExpanded } });
-            } else {
-              if (ui.fullDetails) ui.fullDetails.dataset.pendingView = "true";
-              if (forms.login) showAuthForm(forms.login);
-            }
-          });
-        } else {
-        const { isLoggedIn } = await storage.get(["isLoggedIn"]);
-        if (isLoggedIn) {
-          const isExpanded =
-            ui.mainActionButton.getAttribute("aria-expanded") === "true";
-          applyExpandedState(!isExpanded);
-          await storage.set({ popupUIState: { expanded: !isExpanded } });
-        } else {
-          if (ui.fullDetails) ui.fullDetails.dataset.pendingView = "true";
-          if (forms.login) showAuthForm(forms.login);
-          }
-        }
-      } catch (error) {
-        console.error("Error handling main action button click:", error);
-        // If all else fails, show login form
+      const { isLoggedIn } = await storage.get(["isLoggedIn"]);
+      if (isLoggedIn) {
+        const isExpanded =
+          ui.mainActionButton.getAttribute("aria-expanded") === "true";
+        applyExpandedState(!isExpanded);
+        await storage.set({ popupUIState: { expanded: !isExpanded } });
+      } else {
         if (ui.fullDetails) ui.fullDetails.dataset.pendingView = "true";
+        // Hide preview content when showing login form
+        if (ui.previewContent) ui.previewContent.style.display = "none";
         if (forms.login) showAuthForm(forms.login);
       }
     });
@@ -493,43 +610,40 @@ document.addEventListener("DOMContentLoaded", () => {
           data.email.trim() === VALID_USER.email &&
           data.password === VALID_USER.password
         ) {
-          try {
-            Object.values(forms).forEach((form) => {
-              if (form) form.style.display = "none";
-            });
-            updateUIForAuthState(true, VALID_USER);
+          Object.values(forms).forEach((form) => {
+            if (form) form.style.display = "none";
+          });
+          // Hide preview content after successful login
+          if (ui.previewContent) ui.previewContent.style.display = "none";
+          updateUIForAuthState(true, VALID_USER);
 
-            const snippetText = (
-              lastData?.metaDescription ||
-              lastData?.snippet ||
-              ""
-            ).trim();
-            if (ui.snippet)
-              ui.snippet.style.display = snippetText ? "block" : "none";
+          const snippetText = (
+            lastData?.metaDescription ||
+            lastData?.snippet ||
+            ""
+          ).trim();
+          if (ui.snippet)
+            ui.snippet.style.display = snippetText ? "block" : "none";
 
-            if (
-              ui.fullDetails &&
-              ui.fullDetails.dataset.pendingView === "true"
-            ) {
-              applyExpandedState(true);
-              ui.fullDetails.dataset.pendingView = "false";
-            }
-
-            if (ui.mainActionButton)
-              ui.mainActionButton.style.display = "inline-block";
-
-            await storage.set({
-              user: VALID_USER,
-              isLoggedIn: true,
-              popupUIState: {
-                expanded:
-                  ui.fullDetails && ui.fullDetails.style.display === "block",
-              },
-            });
-          } catch (error) {
-            console.error("Error on successful login:", error);
-            showToast("An error occurred during login.");
+          if (
+            ui.fullDetails &&
+            ui.fullDetails.dataset.pendingView === "true"
+          ) {
+            applyExpandedState(true);
+            ui.fullDetails.dataset.pendingView = "false";
           }
+
+          if (ui.mainActionButton)
+            ui.mainActionButton.style.display = "inline-block";
+
+          await storage.set({
+            user: VALID_USER,
+            isLoggedIn: true,
+            popupUIState: {
+              expanded:
+                ui.fullDetails && ui.fullDetails.style.display === "block",
+            },
+          });
         } else {
           showToast("Invalid email or password.");
         }
@@ -561,37 +675,19 @@ document.addEventListener("DOMContentLoaded", () => {
       case "logoutButton":
         updateUIForAuthState(false, null);
         applyExpandedState(false);
-        // ENHANCED: Add context validation before sending message
-        try {
-          if (!chrome.runtime || !chrome.runtime.id) {
-            console.warn("Extension context invalid, using direct storage access");
-            // Fallback to direct storage access
-            chrome.storage.local.remove(['user', 'isLoggedIn', 'popupUIState'], () => {
-              if (chrome.runtime.lastError) {
-                console.error("Direct logout failed:", chrome.runtime.lastError);
-                showToast("Logout failed. Please try again.");
-              } else {
-                showToast("You have been signed out.", "success");
-              }
-            });
-          } else {
-            // Use background script if context is valid
-        chrome.runtime.sendMessage({ action: "logout" }, (response) => {
-          if (chrome.runtime.lastError || response?.status !== "success") {
-            console.error(
-              "Logout failed:",
-              chrome.runtime.lastError || response.message
-            );
-            showToast("Logout failed. Please try again.");
-          } else {
-            showToast("You have been signed out.", "success");
-          }
-        });
-          }
-        } catch (error) {
-          console.error("Logout error:", error);
-          showToast("Logout failed. Please try again.");
+        // Show preview content again after logout
+        if (lastData && ui.previewContent) {
+          showPreviewContent(lastData);
         }
+        // Use direct storage access for logout
+        storage.remove(['user', 'isLoggedIn', 'popupUIState'])
+          .then(() => {
+            showToast("You have been signed out.", "success");
+          })
+          .catch((error) => {
+            console.warn("Storage access failed during logout:", error.message);
+            showToast("You have been signed out locally.");
+          });
         break;
       case "userAvatar":
         e.stopPropagation();
@@ -644,42 +740,66 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const init = async () => {
     try {
-      // Check if extension context is valid before proceeding
-      if (!isExtensionContextValid()) {
-        console.warn("Extension context invalid during initialization");
-        return;
-      }
-
-      // Use the new storage wrapper to get data
-      const { currentPageData } = await storage.get("currentPageData");
+      // First, ensure all auth forms are hidden initially
+      Object.values(forms).forEach((form) => {
+        if (form) form.style.display = "none";
+      });
+      
+      // Use direct storage access to get data
+      const { currentPageData, isLoggedIn, user } = await storage.get(["currentPageData", "isLoggedIn", "user"]);
+      
+      // Set initial auth state
+      updateUIForAuthState(isLoggedIn, user);
+      
       if (currentPageData) {
         await updateUIFromData(currentPageData);
+      } else {
+        // If no page data is available, show preview content with placeholder data
+        showPreviewContent({
+          title: "Loading page data...",
+          text: "Please wait while we analyze this page.",
+          metaDescription: "Page analysis in progress...",
+          url: window.location?.href || "Unknown"
+        });
       }
 
-      // Only add storage listener if context is valid
-      if (isExtensionContextValid()) {
-      chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === "local") {
-          if (changes.currentPageData)
-            updateUIFromData(changes.currentPageData.newValue);
-          if (changes.user || changes.isLoggedIn) init();
+      // Add storage listener for real-time updates with error handling
+      try {
+        if (chrome.storage && chrome.storage.onChanged) {
+          chrome.storage.onChanged.addListener((changes, area) => {
+            try {
+              if (area === "local") {
+                if (changes.currentPageData)
+                  updateUIFromData(changes.currentPageData.newValue);
+                if (changes.user || changes.isLoggedIn) {
+                  // Update UI immediately for auth state changes
+                  if (changes.isLoggedIn) {
+                    const isLoggedIn = changes.isLoggedIn.newValue;
+                    if (!isLoggedIn && lastData) {
+                      // User logged out, show preview content
+                      showPreviewContent(lastData);
+                    }
+                  }
+                  init();
+                }
+              }
+            } catch (error) {
+              console.warn("Storage listener error:", error);
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.warn("Failed to add storage listener:", error);
       }
     } catch (err) {
       console.error("Initialization failed:", err);
-      // If storage.get fails, try direct access as fallback
-      if (err.message.includes("Extension context invalidated")) {
-        try {
-          chrome.storage.local.get("currentPageData", (data) => {
-            if (data.currentPageData) {
-              updateUIFromData(data.currentPageData);
-            }
-          });
-        } catch (fallbackErr) {
-          console.error("Fallback initialization also failed:", fallbackErr);
-        }
-      }
+      // Show preview content with placeholder data as fallback
+      showPreviewContent({
+        title: "Loading page data...",
+        text: "Please wait while we analyze this page.",
+        metaDescription: "Page analysis in progress...",
+        url: window.location?.href || "Unknown"
+      });
     }
   };
 
