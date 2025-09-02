@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
     assistanceSearchInput: getEl("assistanceSearchInput"),
     suggestionsContainer: getEl("suggestionsContainer"),
     sendAssistanceRequest: getEl("sendAssistanceRequest"),
+    voiceButton: getEl("voiceButton"),
     // Elements for play/pause button
     playPauseBtn: getEl("playPauseBtn"),
     playIcon: query(".play-icon"),
@@ -39,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
     previewSnippet: getEl("previewSnippet"),
     contentLength: getEl("contentLength"),
     keyTopics: getEl("keyTopics"),
+    // Header layout elements
+    brandBar: getEl("brandBar"),
   };
 
   const forms = {
@@ -219,9 +222,26 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const updateUIForAuthState = (isLoggedIn, userData) => {
-    if (ui.closeBtn) ui.closeBtn.style.display = isLoggedIn ? "none" : "flex";
+    // Update close button visibility - always show the close button
+    if (ui.closeBtn) ui.closeBtn.style.display = "flex";
+    
+    // Update user profile visibility - show when logged in, hide when not logged in
     if (ui.userProfile)
       ui.userProfile.style.display = isLoggedIn ? "block" : "none";
+    
+    // Update brand bar positioning based on login state
+    if (ui.brandBar) {
+      if (isLoggedIn) {
+        // When logged in, left-align the brand (avatar is present)
+        ui.brandBar.classList.remove("centered");
+        ui.brandBar.classList.add("left-aligned");
+      } else {
+        // When not logged in, center the brand (no avatar)
+        ui.brandBar.classList.remove("left-aligned");
+        ui.brandBar.classList.add("centered");
+      }
+    }
+    
     if (ui.needAssistanceTrigger)
       ui.needAssistanceTrigger.style.display = isLoggedIn ? "flex" : "none";
     // Show/hide the play/pause button based on login state
@@ -542,13 +562,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    suggestions.add("What are the key points?");
-    suggestions.add("Explain this like I am 10");
-    suggestions.add("Suggest a title for this page");
+    // Add default suggestions like in the image
+    suggestions.add("Analyse the acceptance criteria and suggest additional edge cases or missing scenarios for College Recruitment prospects.");
+    suggestions.add("Summarise the given requirement into a technical specification that developers can follow while linking with the provided Figma and Confluence references.");
+    suggestions.add("Create test cases based on this acceptance criteria for viewing College Recruitment prospects, including positive and negative scenarios.");
 
     ui.suggestionsContainer.innerHTML = "";
     suggestions.forEach((promptText) => {
-      if (ui.suggestionsContainer.childElementCount >= 6) return;
+      if (ui.suggestionsContainer.childElementCount >= 3) return;
       const btn = document.createElement("button");
       btn.className = "suggestion-btn";
       btn.textContent = promptText;
@@ -728,6 +749,14 @@ document.addEventListener("DOMContentLoaded", () => {
         callChatbotAPI(prompt, lastData ? lastData.text : "");
         ui.assistanceSearchInput.value = "";
       }
+    });
+  }
+
+  // Voice button functionality
+  if (ui.voiceButton) {
+    ui.voiceButton.addEventListener("click", () => {
+      // Placeholder for voice input functionality
+      showToast("Voice input feature coming soon!", "success");
     });
   }
 

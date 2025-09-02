@@ -1,41 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="popup.css" />
   <title>IMagical</title>
 </head>
+
 <body>
   <div class="container" id="mainContainer">
-    <button class="close-btn" aria-label="Close popup" id="popupCloseBtn">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    </button>
-    
-    <div class="user-profile" style="display: none;">
-      <div class="user-avatar" id="userAvatar"></div>
-      <div class="user-menu" id="userMenu" style="display: none;">
-        <div class="user-info">
-          <span id="userMenuName"></span>
-          <span id="userMenuEmail"></span>
-        </div>
-        <div class="menu-actions">
-          <button id="logoutButton" class="menu-item">Sign Out</button>
-          <a href="https://identitygram.co.uk/" target="_blank" class="menu-item history-link">View History</a>
+    <div class="header-container">
+      <button class="close-btn" aria-label="Close popup" id="popupCloseBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div class="brand-bar" id="brandBar">
+        <img src="icons/icon48.png" alt="Logo" class="brand-logo" width="24" height="24" />
+        <span class="brand-name">Consulgenix</span>
+      </div>
+
+      <div class="user-profile" style="display: none;">
+        <div class="user-avatar" id="userAvatar"></div>
+        <div class="user-menu" id="userMenu" style="display: none;">
+          <div class="user-info">
+            <span id="userMenuName"></span>
+            <span id="userMenuEmail"></span>
+          </div>
+          <div class="menu-actions">
+            <button id="logoutButton" class="menu-item">Sign Out</button>
+            <a href="https://identitygram.co.uk/" target="_blank" class="menu-item history-link">View History</a>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Brand bar -->
-    <div class="brand-bar">
-      <img src="icons/icon48.png" alt="Logo" class="brand-logo" width="24" height="24" />
-      <span class="brand-name">Consulgenix</span>
-    </div>
-
-    <!-- Hero header card -->
     <div class="hero-card">
       <div class="hero-content">
         <div class="hero-left">
@@ -49,108 +52,132 @@
           </div>
         </div>
         <button id="playPauseBtn" class="play-btn hero-play" style="display: none;">
-          <svg class="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg class="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
           <span class="tooltip-text">Start Clock Log</span>
         </button>
       </div>
     </div>
 
-    <!-- Scrollable content area -->
     <div class="content-area">
       <div class="auth-wall" id="loginForm" style="display: none;">
-      <form class="auth-form" id="authForm">
-        <h3>Sign In to Continue</h3>
-        <p class="auth-subtitle">Enter your details to view the full analysis.</p>
-        <div class="input-group">
-          <label for="loginEmail">Email Address</label>
-          <input type="email" id="loginEmail" name="email" required placeholder="name@company.com">
-        </div>
-        <div class="input-group">
-          <div class="label-row">
-            <label for="loginPassword">Password</label>
-            <a href="#" class="forgot-link" id="forgotPasswordLink">Forgot?</a>
+        <form class="auth-form" id="authForm">
+          <h3>Sign In to Continue</h3>
+          <p class="auth-subtitle">Enter your details to view the full analysis.</p>
+          <div class="input-group">
+            <label for="loginEmail">Email Address</label>
+            <input type="email" id="loginEmail" name="email" required placeholder="name@company.com">
           </div>
-          <input type="password" id="loginPassword" name="password" required placeholder="••••••••">
-          <div class="password-strength" id="loginPasswordStrength" style="display: none;"></div>
-        </div>
-        <button type="submit" class="auth-button" id="authSubmitButton">Sign In</button>
-      </form>
-    </div>
-
-    <div class="auth-wall" id="forgotPasswordForm" style="display: none;">
-      <form class="auth-form" id="forgotPasswordFormElement">
-        <h3>Reset Password</h3>
-        <p class="auth-subtitle">Enter your email to receive a reset link.</p>
-        <div class="input-group">
-          <label for="forgotPasswordEmail">Email Address</label>
-          <input type="email" id="forgotPasswordEmail" name="email" required placeholder="name@company.com">
-        </div>
-        <button type="submit" class="auth-button" id="forgotPasswordButton">Send Reset Link</button>
-        <p class="auth-footer">
-          <a href="#" id="backToSignInLink">Back to Sign In</a>
-        </p>
-      </form>
-    </div>
-
-    <!-- Preview content shown before login -->
-    <div class="preview-content" id="previewContent" style="display: block;">
-      <div class="preview-header">
-        <h4>Page Preview</h4>
-        <p class="preview-subtitle">Here's what we found on this page:</p>
+          <div class="input-group">
+            <div class="label-row">
+              <label for="loginPassword">Password</label>
+              <a href="#" class="forgot-link" id="forgotPasswordLink">Forgot?</a>
+            </div>
+            <input type="password" id="loginPassword" name="password" required placeholder="••••••••">
+            <div class="password-strength" id="loginPasswordStrength" style="display: none;"></div>
+          </div>
+          <button type="submit" class="auth-button" id="authSubmitButton">Sign In</button>
+        </form>
       </div>
-      <div class="preview-snippet" id="previewSnippet">Loading page analysis...</div>
-      <div class="preview-meta">
-        <div class="preview-meta-item">
-          <span class="meta-label">Content Length:</span>
-          <span class="meta-value" id="contentLength">Analyzing...</span>
+
+      <div class="auth-wall" id="forgotPasswordForm" style="display: none;">
+        <form class="auth-form" id="forgotPasswordFormElement">
+          <h3>Reset Password</h3>
+          <p class="auth-subtitle">Enter your email to receive a reset link.</p>
+          <div class="input-group">
+            <label for="forgotPasswordEmail">Email Address</label>
+            <input type="email" id="forgotPasswordEmail" name="email" required placeholder="name@company.com">
+          </div>
+          <button type="submit" class="auth-button" id="forgotPasswordButton">Send Reset Link</button>
+          <p class="auth-footer">
+            <a href="#" id="backToSignInLink">Back to Sign In</a>
+          </p>
+        </form>
+      </div>
+
+      <div class="preview-content" id="previewContent" style="display: block;">
+        <div class="preview-header">
+          <h4>Page Preview</h4>
+          <p class="preview-subtitle">Here's what we found on this page:</p>
         </div>
-        <div class="preview-meta-item">
-          <span class="meta-label">Key Topics:</span>
-          <span class="meta-value" id="keyTopics">Extracting...</span>
+        <div class="preview-snippet" id="previewSnippet">Loading page analysis...</div>
+        <div class="preview-meta">
+          <div class="preview-meta-item">
+            <span class="meta-label">Content Length:</span>
+            <span class="meta-value" id="contentLength">Analyzing...</span>
+          </div>
+          <div class="preview-meta-item">
+            <span class="meta-label">Key Topics:</span>
+            <span class="meta-value" id="keyTopics">Extracting...</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="full-details" style="display: none;">
-      <p class="content-snippet" style="display: none;"></p>
-      <p class="full-content"></p>
+      <div class="full-details" style="display: none;">
+        <p class="content-snippet" style="display: none;"></p>
+        <p class="full-content"></p>
+      </div>
+
+      <button class="toggle-details-btn" aria-expanded="false" aria-controls="full-details" id="mainActionButton">Show
+        Full Analysis</button>
+
+      <div id="needAssistanceTrigger" class="assistance-trigger-inline" style="display: none;">
+        <img class="sparkles" src="images/ai-assistance-triger-icon.png" alt="AI Assistance Trigger" width="24"
+          height="24" />
+        <span class="tooltip-text-inline">Need Assistance?</span>
+      </div>
+
     </div>
-    
-    <button class="toggle-details-btn" aria-expanded="false" aria-controls="full-details" id="mainActionButton">Show Full Analysis</button>
-    
-    <div id="needAssistanceTrigger" class="assistance-trigger-inline" style="display: none;">
-      <svg class="search-icon sparkles" width="18" height="18" viewBox="0 0 24 24"><path d="M9.5 2.6l1.8 3.7 3.7 1.8-3.7 1.8-1.8 3.7-1.8-3.7-3.7-1.8 3.7-1.8 1.8-3.7zM14.5 11.4l.8 1.6 1.6.8-1.6.8-.8 1.6-.8-1.6-1.6-.8 1.6-.8.8-1.6z"/></svg>
-      <span class="tooltip-text-inline">Need Assistance?</span>
-    </div>
-    
-    </div> <!-- End content-area -->
-   
   </div>
 
   <div class="assistance-view" id="assistanceView" style="display: none;">
     <div class="assistance-header">
       <button class="back-btn" id="backToDetailsBtn" aria-label="Go back">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5" />
+          <path d="m12 19-7-7 7-7" />
+        </svg>
       </button>
       <div class="breadcrumb-display" id="breadcrumbDisplay"></div>
     </div>
-    <div class="search-bar-container">
-      <svg class="search-icon sparkles" width="24" height="24" viewBox="0 0 24 24"><path d="M9.5 2.6l1.8 3.7 3.7 1.8-3.7 1.8-1.8 3.7-1.8-3.7-3.7-1.8 3.7-1.8 1.8-3.7zM14.5 11.4l.8 1.6 1.6.8-1.6.8-.8 1.6-.8-1.6-1.6-.8 1.6-.8.8-1.6z"/></svg>
-      <input type="text" id="assistanceSearchInput" placeholder="Ask me anything">
-      <button class="search-action-btn" id="sendAssistanceRequest">
-        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a1 1 0 0 0-1.39 1.39L4 12l-1.99 7.01a1 1 0 0 0 1.39 1.39z"/></svg>
+    <!-- <div class="search-bar-container">
+      <img class="ai-assistance-icon" src="images/ai-assistance-search-icon.png" alt="AI Assistance" width="24" height="20" />
+      <input type="text" id="assistanceSearchInput" placeholder="Not what you need? Type query">
+      <button class="voice-btn" id="voiceButton">
+        <img src="images/search-voice-icon.png" alt="Voice" width="18" height="18" />
       </button>
+      <button class="search-action-btn" id="sendAssistanceRequest">
+        <img src="images/search-send-icons.png" alt="Send" width="14" height="14" />
+      </button>
+    </div> -->
+    <div class="search-bar-container">
+      <svg class="search-icon sparkles" width="24" height="24" viewBox="0 0 24 24">
+        <path
+          d="M9.5 2.6l1.8 3.7 3.7 1.8-3.7 1.8-1.8 3.7-1.8-3.7-3.7-1.8 3.7-1.8 1.8-3.7zM14.5 11.4l.8 1.6 1.6.8-1.6.8-.8 1.6-.8-1.6-1.6-.8 1.6-.8.8-1.6z" />
+      </svg>
+      <input type="text" id="assistanceSearchInput" placeholder="Need assistance? Type query">
+      
+      <button class="search-action-btn" id="sendAssistanceRequest">
+
+        <img src="images/search-send-icons.png" alt="Send" width="14" height="14" /> </button>
     </div>
+
     <div class="suggestions-container" id="suggestionsContainer">
     </div>
   </div>
   <div class="footer">
-    <span style="font-style: italic; color: #888888;">Powered by </span><span style="font-style: italic; color: #5e46f0;">Consugenix AI</span>
+    <span style="font-style: italic; color: #7F9599;">Powered by </span><span
+      style="font-style: italic; color: #016DB6;">Consugenix AI</span>
   </div>
 
   <div id="toastContainer" class="toast-container"></div>
-  
+
   <script src="popup.js"></script>
 </body>
+
 </html>
