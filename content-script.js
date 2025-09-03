@@ -1,5 +1,5 @@
 /* content-script.js
-   Robust content extraction for IIMagical Extension
+   Robust content extraction for Consulgenix Extension
    - Uses Shadow DOM to isolate all injected UI and styles from the host page.
    - Uses Readability optionally, but always captures full text via TreeWalker
    - Special handling for Google SERP (includes full titles + URLs)

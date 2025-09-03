@@ -19,7 +19,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   padding: 6px 10px;
   flex-shrink: 0;
   min-height: 40px;
@@ -37,7 +37,7 @@
   flex-shrink: 0;
   transition: all 0.3s ease;
   padding: 0;
-  
+  order: 1;
 }
 
 /* When no avatar is present, center the brand */
@@ -45,6 +45,7 @@
   position: static;
   transform: none;
   padding: 0;
+  order: 1;
 }
 
 /* When avatar is present, left-align the brand */
@@ -52,7 +53,7 @@
   position: static;
   transform: none;
   margin-left: 0;
-  /* No longer need space for close button */
+  order: 1;
 }
 
 .brand-logo {
@@ -197,7 +198,7 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  max-height: calc(600px - 120px);
+  max-height: calc(600px - 110px);
   /* Ensure it doesn't exceed available space */
   padding: 0;
   margin: 0;
@@ -257,22 +258,20 @@ body {
 }
 
 .user-profile {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
+  position: static;
   z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
   pointer-events: auto;
+  order: 2;
   /* Ensure it's clickable */
 }
 
 .user-avatar {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid #fff;
   box-shadow: var(--shadow-light);
@@ -458,34 +457,32 @@ body {
 }
 
 .close-btn {
-  position: absolute;
-  top: 50%;
-  left: 8px;
-  transform: translateY(-50%);
+  position: static;
   background: var(--primary-blue);
   border: none;
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
   border-radius: 8px;
   transition: background-color 0.2s, transform 0.2s;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 100;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  order: 3;
 }
 
 .close-btn:hover {
   background-color: var(--primary-blue-hover);
-  transform: translateY(-50%) scale(1.05);
+  transform: scale(1.05);
 }
 
 .close-btn svg {
   stroke: white;
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   pointer-events: none;
 }
 
@@ -546,8 +543,9 @@ body {
 .auth-wall {
   background: var(--bg-secondary);
   border-radius: 12px;
-  padding: 25px;
+  padding: 10px;
   margin: 5px 0;
+  border: 2px solid #ffffff;
 }
 
 .auth-form {
@@ -702,7 +700,6 @@ body {
   padding: 10px 0;
   width: 200px;
   z-index: 1000;
-  margin-top: 10px;
 }
 
 .user-info {

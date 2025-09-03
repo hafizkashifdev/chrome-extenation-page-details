@@ -222,8 +222,8 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const updateUIForAuthState = (isLoggedIn, userData) => {
-    // Update close button visibility - always show the close button
-    if (ui.closeBtn) ui.closeBtn.style.display = "flex";
+    // Update close button visibility - hide when logged in, show when not logged in
+    if (ui.closeBtn) ui.closeBtn.style.display = isLoggedIn ? "none" : "flex";
     
     // Update user profile visibility - show when logged in, hide when not logged in
     if (ui.userProfile)
