@@ -270,19 +270,40 @@ class ApiService {
         throw new ApiError(CONFIG.ERRORS.INVALID_EMAIL, 400);
       }
 
-      const response = await this.makeRequest(
-        `${this.baseURL}${this.endpoints.FORGOT_PASSWORD}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            email: email.trim()
-          })
-        }
-      );
+      // The API requires authentication as shown in Swagger documentation
+      // If no token is available, we need to inform the user
+      if (!this.authToken) {
+        throw new ApiError('Please sign in first to reset your password. The forgot password feature requires authentication.', 401);
+      }
+
+      // Make direct fetch request with proper headers as shown in Swagger
+      const response = await fetch(`${this.baseURL}${this.endpoints.FORGOT_PASSWORD}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'developer-name': 'null',
+          'Authorization': `Bearer ${this.authToken}`
+        },
+        body: JSON.stringify({
+          email: email.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+          errorData.errors || []
+        );
+      }
+
+      const result = await response.json();
 
       return {
         success: true,
-        message: response.message || CONFIG.SUCCESS.FORGOT_PASSWORD
+        message: result.message || CONFIG.SUCCESS.FORGOT_PASSWORD
       };
     } catch (error) {
       console.error('Forgot password error:', error);
@@ -308,20 +329,40 @@ class ApiService {
         throw new ApiError(CONFIG.ERRORS.WEAK_PASSWORD, 400);
       }
 
-      const response = await this.makeRequest(
-        `${this.baseURL}${this.endpoints.RESET_PASSWORD}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            resetCode: resetCode.trim(),
-            newPassword: newPassword
-          })
-        }
-      );
+      // The API requires authentication
+      if (!this.authToken) {
+        throw new ApiError('Please sign in first to reset your password. The reset password feature requires authentication.', 401);
+      }
+
+      // Make direct fetch request with proper headers
+      const response = await fetch(`${this.baseURL}${this.endpoints.RESET_PASSWORD}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'developer-name': 'null',
+          'Authorization': `Bearer ${this.authToken}`
+        },
+        body: JSON.stringify({
+          resetCode: resetCode.trim(),
+          newPassword: newPassword
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+          errorData.errors || []
+        );
+      }
+
+      const result = await response.json();
 
       return {
         success: true,
-        message: response.message || CONFIG.SUCCESS.RESET_PASSWORD
+        message: result.message || CONFIG.SUCCESS.RESET_PASSWORD
       };
     } catch (error) {
       console.error('Reset password error:', error);

@@ -782,10 +782,23 @@ document.addEventListener("DOMContentLoaded", () => {
           errorMessage = 'No account found with this email address.';
         } else if (error.message.includes('Network') || error.message.includes('fetch')) {
           errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          errorMessage = 'Please sign in first to reset your password. The forgot password feature requires authentication.';
+        } else if (error.message.includes('Please sign in first')) {
+          errorMessage = 'Please sign in first to reset your password. The forgot password feature requires authentication.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Server error. Please try again in a few moments.';
         }
       }
       
       showToast(errorMessage);
+      
+      // If the error is about needing to sign in first, redirect to sign-in form
+      if (error.message.includes('Please sign in first') || errorMessage.includes('Please sign in first')) {
+        setTimeout(() => {
+          showAuthForm(forms.login);
+        }, 2000);
+      }
     }
   };
 
