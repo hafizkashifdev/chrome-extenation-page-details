@@ -36,7 +36,9 @@
       "resources": [
         "popup.html", 
         "icons/*", 
-        "content-style.css"
+        "content-style.css",
+        "api-service.js",
+        "config.js"
       ],
       "matches": ["<all_urls>"]
     }

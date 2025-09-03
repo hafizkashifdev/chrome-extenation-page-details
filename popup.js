@@ -47,21 +47,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const forms = {
     login: getEl("loginForm"),
     forgotPassword: getEl("forgotPasswordForm"),
+    resetPassword: getEl("resetPasswordForm"),
   };
 
   const passwordStrengthUI = {
     login: getEl("loginPasswordStrength"),
+    newPassword: getEl("newPasswordStrength"),
   };
 
   // --- State & Config ---
   let isPlaying = false; // State for the play/pause button
   let lastData = null;
-  const VALID_USER = {
-    email: "kashifnazim127@gmail.com",
-    password: "Hafiz@786",
-    name: "Kashif Nazim",
-    avatarUrl: "",
-  };
+  let apiService = null;
   const PASSWORD_REQUIREMENTS = {
     minLength: 8,
     upper: 1,
@@ -151,6 +148,15 @@ document.addEventListener("DOMContentLoaded", () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
+  // Initialize API service
+  const initApiService = async () => {
+    if (!apiService) {
+      apiService = new ApiService();
+      await apiService.init();
+    }
+    return apiService;
+  };
+
   const showToast = (text, type = "error", duration = 3000) => {
     const toastContainer = getEl("toastContainer");
     if (!toastContainer) return;
@@ -168,6 +174,18 @@ document.addEventListener("DOMContentLoaded", () => {
       toast.classList.remove("show");
       toast.addEventListener("transitionend", () => toast.remove());
     }, duration);
+  };
+
+  const showLoader = (text = "Verifying credentials...") => {
+    const loadingOverlay = getEl("loadingOverlay");
+    const loadingText = loadingOverlay?.querySelector(".loading-text");
+    if (loadingText) loadingText.textContent = text;
+    if (loadingOverlay) loadingOverlay.style.display = "flex";
+  };
+
+  const hideLoader = () => {
+    const loadingOverlay = getEl("loadingOverlay");
+    if (loadingOverlay) loadingOverlay.style.display = "none";
   };
 
   const showAuthForm = (formEl) => {
@@ -249,8 +267,12 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.playPauseBtn.style.display = isLoggedIn ? "flex" : "none";
 
     if (isLoggedIn && userData) {
-      if (ui.userAvatar) ui.userAvatar.textContent = getInitials(userData.name);
-      if (ui.userMenuName) ui.userMenuName.textContent = userData.name || "";
+      // Use API service to get user initials and display name
+      const displayName = apiService ? apiService.getUserDisplayName() : (userData.name || userData.email || 'User');
+      const initials = apiService ? apiService.getUserInitials() : getInitials(displayName);
+      
+      if (ui.userAvatar) ui.userAvatar.textContent = initials;
+      if (ui.userMenuName) ui.userMenuName.textContent = displayName;
       if (ui.userMenuEmail) ui.userMenuEmail.textContent = userData.email || "";
       
       // Hide all auth forms and preview content when logged in
@@ -625,59 +647,224 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
 
-    switch (e.target.id) {
-      case "authForm":
-        if (
-          data.email.trim() === VALID_USER.email &&
-          data.password === VALID_USER.password
-        ) {
-          Object.values(forms).forEach((form) => {
-            if (form) form.style.display = "none";
-          });
-          // Hide preview content after successful login
-          if (ui.previewContent) ui.previewContent.style.display = "none";
-          updateUIForAuthState(true, VALID_USER);
+    try {
+      const api = await initApiService();
 
-          const snippetText = (
-            lastData?.metaDescription ||
-            lastData?.snippet ||
-            ""
-          ).trim();
-          if (ui.snippet)
-            ui.snippet.style.display = snippetText ? "block" : "none";
-
-          if (
-            ui.fullDetails &&
-            ui.fullDetails.dataset.pendingView === "true"
-          ) {
-            applyExpandedState(true);
-            ui.fullDetails.dataset.pendingView = "false";
-          }
-
-          if (ui.mainActionButton)
-            ui.mainActionButton.style.display = "inline-block";
-
-          await storage.set({
-            user: VALID_USER,
-            isLoggedIn: true,
-            popupUIState: {
-              expanded:
-                ui.fullDetails && ui.fullDetails.style.display === "block",
-            },
-          });
-        } else {
-          showToast("Invalid email or password.");
-        }
-        break;
-      case "forgotPasswordFormElement":
-        showToast(
-          "If this email is registered, you will receive reset instructions.",
-          "success"
-        );
-        if (forms.login) setTimeout(() => showAuthForm(forms.login), 2000);
-        break;
+      switch (e.target.id) {
+        case "authForm":
+          await handleSignIn(data, api);
+          break;
+        case "forgotPasswordFormElement":
+          await handleForgotPassword(data, api);
+          break;
+        case "resetPasswordFormElement":
+          await handleResetPassword(data, api);
+          break;
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      showToast(error.getUserMessage ? error.getUserMessage() : 'An error occurred. Please try again.');
     }
   });
+
+  const handleSignIn = async (data, api) => {
+    try {
+      // Show loader immediately
+      showLoader("Verifying credentials...");
+      
+      const result = await api.signIn(data.email.trim(), data.password);
+      
+      if (result.success) {
+        // Update loader text
+        showLoader("Setting up your account...");
+        
+        // Small delay to show the setup message
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        Object.values(forms).forEach((form) => {
+          if (form) form.style.display = "none";
+        });
+        // Hide preview content after successful login
+        if (ui.previewContent) ui.previewContent.style.display = "none";
+        updateUIForAuthState(true, result.user);
+
+        const snippetText = (
+          lastData?.metaDescription ||
+          lastData?.snippet ||
+          ""
+        ).trim();
+        if (ui.snippet)
+          ui.snippet.style.display = snippetText ? "block" : "none";
+
+        if (
+          ui.fullDetails &&
+          ui.fullDetails.dataset.pendingView === "true"
+        ) {
+          applyExpandedState(true);
+          ui.fullDetails.dataset.pendingView = "false";
+        }
+
+        if (ui.mainActionButton)
+          ui.mainActionButton.style.display = "inline-block";
+
+        await storage.set({
+          user: result.user,
+          isLoggedIn: true,
+          popupUIState: {
+            expanded:
+              ui.fullDetails && ui.fullDetails.style.display === "block",
+          },
+        });
+
+        // Hide loader and show success message
+        hideLoader();
+        showToast("Welcome back! You're now signed in.", "success");
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      hideLoader();
+      
+      // Custom error messages based on error type
+      let errorMessage = 'Sign in failed. Please try again.';
+      
+      if (error.getUserMessage) {
+        errorMessage = error.getUserMessage();
+      } else if (error.message) {
+        if (error.message.includes('Email must be an Email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('Invalid credentials') || error.message.includes('401')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Account not found. Please check your email address.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Server error. Please try again in a few moments.';
+        }
+      }
+      
+      showToast(errorMessage);
+    }
+  };
+
+  const handleForgotPassword = async (data, api) => {
+    try {
+      showLoader("Sending reset code...");
+      
+      const result = await api.forgotPassword(data.email.trim());
+      
+      if (result.success) {
+        hideLoader();
+        showToast("Reset code sent to your email. Please check your inbox.", "success");
+        // Show reset password form after successful forgot password
+        setTimeout(() => {
+          showAuthForm(forms.resetPassword);
+          // Pre-fill email in reset form (you might want to store this temporarily)
+          const resetForm = getEl("resetPasswordFormElement");
+          if (resetForm) {
+            // Store email for reset password form
+            resetForm.dataset.email = data.email.trim();
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      hideLoader();
+      
+      let errorMessage = 'Failed to send reset code. Please try again.';
+      
+      if (error.getUserMessage) {
+        errorMessage = error.getUserMessage();
+      } else if (error.message) {
+        if (error.message.includes('Email must be an Email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('404') || error.message.includes('not found')) {
+          errorMessage = 'No account found with this email address.';
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        }
+      }
+      
+      showToast(errorMessage);
+    }
+  };
+
+  const handleResetPassword = async (data, api) => {
+    // Validate password strength
+    const newPasswordInput = getEl("newPassword");
+    const isStrongPassword = updatePasswordStrengthUI(
+      data.newPassword, 
+      passwordStrengthUI.newPassword, 
+      newPasswordInput
+    );
+
+    if (!isStrongPassword) {
+      showToast("Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters.");
+      return;
+    }
+
+    try {
+      showLoader("Resetting password...");
+      
+      const result = await api.resetPassword(data.resetCode.trim(), data.newPassword);
+      
+      if (result.success) {
+        hideLoader();
+        showToast("Password reset successfully! You can now sign in with your new password.", "success");
+        // Go back to sign in form after successful reset
+        setTimeout(() => {
+          showAuthForm(forms.login);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      hideLoader();
+      
+      let errorMessage = 'Failed to reset password. Please try again.';
+      
+      if (error.getUserMessage) {
+        errorMessage = error.getUserMessage();
+      } else if (error.message) {
+        if (error.message.includes('Invalid reset code') || error.message.includes('invalid')) {
+          errorMessage = 'Invalid reset code. Please check the code sent to your email.';
+        } else if (error.message.includes('expired')) {
+          errorMessage = 'Reset code has expired. Please request a new one.';
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        }
+      }
+      
+      showToast(errorMessage);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const api = await initApiService();
+      await api.signOut();
+      
+      updateUIForAuthState(false, null);
+      applyExpandedState(false);
+      
+      // Show preview content again after logout
+      if (lastData && ui.previewContent) {
+        showPreviewContent(lastData);
+      }
+      
+      showToast("You have been signed out.", "success");
+    } catch (error) {
+      console.warn("Logout error:", error);
+      // Still update UI even if API call fails
+      updateUIForAuthState(false, null);
+      applyExpandedState(false);
+      
+      if (lastData && ui.previewContent) {
+        showPreviewContent(lastData);
+      }
+      
+      showToast("You have been signed out locally.");
+    }
+  };
 
   document.addEventListener("click", (e) => {
     const targetId = e.target.id;
@@ -690,25 +877,20 @@ document.addEventListener("DOMContentLoaded", () => {
       case "backToSignInLink":
         if (forms.login) showAuthForm(forms.login);
         break;
+      case "backToForgotPasswordLink":
+        if (forms.forgotPassword) showAuthForm(forms.forgotPassword);
+        break;
+      case "backToSignInFromResetLink":
+        if (forms.login) showAuthForm(forms.login);
+        break;
+      case "goToResetPasswordLink":
+        if (forms.resetPassword) showAuthForm(forms.resetPassword);
+        break;
       case "forgotPasswordLink":
         if (forms.forgotPassword) showAuthForm(forms.forgotPassword);
         break;
       case "logoutButton":
-        updateUIForAuthState(false, null);
-        applyExpandedState(false);
-        // Show preview content again after logout
-        if (lastData && ui.previewContent) {
-          showPreviewContent(lastData);
-        }
-        // Use direct storage access for logout
-        storage.remove(['user', 'isLoggedIn', 'popupUIState'])
-          .then(() => {
-            showToast("You have been signed out.", "success");
-          })
-          .catch((error) => {
-            console.warn("Storage access failed during logout:", error.message);
-            showToast("You have been signed out locally.");
-          });
+        handleLogout();
         break;
       case "userAvatar":
         e.stopPropagation();
@@ -767,8 +949,18 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  const newPasswordInput = getEl("newPassword");
+  if (newPasswordInput) {
+    newPasswordInput.addEventListener("input", (e) =>
+      updatePasswordStrengthUI(e.target.value, passwordStrengthUI.newPassword, e.target)
+    );
+  }
+
   const init = async () => {
     try {
+      // Initialize API service first
+      await initApiService();
+      
       // First, ensure all auth forms are hidden initially
       Object.values(forms).forEach((form) => {
         if (form) form.style.display = "none";

@@ -86,16 +86,40 @@
 
       <div class="auth-wall" id="forgotPasswordForm" style="display: none;">
         <form class="auth-form" id="forgotPasswordFormElement">
-          <h3>Reset Password</h3>
-          <p class="auth-subtitle">Enter your email to receive a reset link.</p>
+          <h3>Forgot Password</h3>
+          <p class="auth-subtitle">Enter your email to receive a reset code.</p>
           <div class="input-group">
             <label for="forgotPasswordEmail">Email Address</label>
             <input type="email" id="forgotPasswordEmail" name="email" required placeholder="name@company.com">
           </div>
-          <button type="submit" class="auth-button" id="forgotPasswordButton">Send Reset Link</button>
-          <p class="auth-footer">
+          <button type="submit" class="auth-button" id="forgotPasswordButton">Send Reset Code</button>
+          <div class="auth-footer-links">
             <a href="#" id="backToSignInLink">Back to Sign In</a>
-          </p>
+            <span class="link-separator">|</span>
+            <a href="#" id="goToResetPasswordLink">Go to Reset Password</a>
+          </div>
+        </form>
+      </div>
+
+      <div class="auth-wall" id="resetPasswordForm" style="display: none;">
+        <form class="auth-form" id="resetPasswordFormElement">
+          <h3>Enter Reset Code</h3>
+          <p class="auth-subtitle">Enter the code sent to your email and your new password.</p>
+          <div class="input-group">
+            <label for="resetCode">Reset Code</label>
+            <input type="text" id="resetCode" name="resetCode" required placeholder="Enter 6-digit code" maxlength="6">
+          </div>
+          <div class="input-group">
+            <label for="newPassword">New Password</label>
+            <input type="password" id="newPassword" name="newPassword" required placeholder="••••••••">
+            <div class="password-strength" id="newPasswordStrength" style="display: none;"></div>
+          </div>
+          <button type="submit" class="auth-button" id="resetPasswordButton">Reset Password</button>
+          <div class="auth-footer-links">
+            <a href="#" id="backToForgotPasswordLink">Back to Forgot Password</a>
+            <span class="link-separator">|</span>
+            <a href="#" id="backToSignInFromResetLink">Back to Sign In</a>
+          </div>
         </form>
       </div>
 
@@ -177,6 +201,16 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p class="loading-text">Verifying credentials...</p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="api-service.js"></script>
   <script src="popup.js"></script>
 </body>
 
