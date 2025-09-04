@@ -226,16 +226,14 @@
       e.stopPropagation();
       
       isDragging = true;
-      shadowHost.style.position = "fixed";
-      shadowHost.style.transition = "none";
-
-      const rect = shadowHost.getBoundingClientRect();
+      // Store initial positions
+      const rect = container.getBoundingClientRect();
       startY = e.clientY;
       startTop = rect.top;
 
-      // Add move cursor to drag handle
+      // Add move cursor
+      document.body.style.cursor = "move";
       dragHandle.style.cursor = "move";
-      container.style.cursor = "move";
 
       const onMouseMove = (moveEvent) => {
         if (!isDragging) return;
@@ -244,18 +242,22 @@
         moveEvent.stopPropagation();
 
         const deltaY = moveEvent.clientY - startY;
-        const newTop = startTop + deltaY;
+        let newTop = startTop + deltaY;
         
-        // Constrain to viewport bounds
-        const containerHeight = shadowHost.offsetHeight;
-        const maxTop = 0;
-        const minTop = window.innerHeight - containerHeight;
+        // Constrain to viewport bounds (top and bottom)
+        const containerHeight = container.offsetHeight;
+        const maxTop = 0; // Top of viewport
+        const minTop = window.innerHeight - containerHeight; // Bottom of viewport
         
-        const constrainedTop = Math.max(maxTop, Math.min(minTop, newTop));
+        // Apply constraints
+        newTop = Math.max(maxTop, Math.min(minTop, newTop));
         
-        shadowHost.style.top = `${constrainedTop}px`;
-        shadowHost.style.bottom = "auto";
-        shadowHost.style.transform = "none";
+        // Apply the new position
+        container.style.position = "fixed";
+        container.style.top = `${newTop}px`;
+        container.style.right = "10px"; // Maintain right position
+        container.style.bottom = "auto";
+        container.style.transform = "none";
       };
 
       const onMouseUp = (upEvent) => {
@@ -263,11 +265,10 @@
         upEvent.stopPropagation();
         
         isDragging = false;
-        shadowHost.style.transition = "all 0.3s ease";
         
         // Reset cursors
+        document.body.style.cursor = "";
         dragHandle.style.cursor = "move";
-        container.style.cursor = "default";
         
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);

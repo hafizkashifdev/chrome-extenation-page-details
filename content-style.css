@@ -1,7 +1,7 @@
 .magical-extension-container {
   position: fixed;
   right: 10px;
-  top: 50%;
+  top: 50%; /* Default position - will be overridden by JS during drag */
   transform: translateY(-50%);
   z-index: 9999;
   display: flex;
@@ -12,6 +12,8 @@
   border-radius: 30px;
   background-color: #fff;
   box-shadow: 0 4px 12px rgba(94, 70, 240, 0.3);
+  /* Ensure it's positioned properly */
+  margin: 0;
 }
 
 .magical-extension-container.hidden {
