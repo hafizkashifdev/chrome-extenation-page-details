@@ -59,6 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let isPlaying = false; // State for the play/pause button
   let lastData = null;
   let apiService = null;
+  let isInPasswordFlow = false; // Track if user is in password reset flow
   const PASSWORD_REQUIREMENTS = {
     minLength: 8,
     upper: 1,
@@ -71,6 +72,17 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   // --- Helper Functions ---
+  // Check if user is currently in password reset flow
+  const isInPasswordResetFlow = () => {
+    // Use the flag first, then check DOM as fallback
+    if (isInPasswordFlow) return true;
+    
+    const resetPasswordForm = getEl("resetPasswordForm");
+    const forgotPasswordForm = getEl("forgotPasswordForm");
+    return (resetPasswordForm && resetPasswordForm.style.display === "block") ||
+           (forgotPasswordForm && forgotPasswordForm.style.display === "block");
+  };
+
   // Direct storage access functions for popup context with extension context validation
   const storage = {
     get: (keys) => new Promise((resolve, reject) => {
@@ -200,6 +212,9 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Show the requested form
     if (formEl) formEl.style.display = "block";
+    
+    // Update password flow flag
+    isInPasswordFlow = (formEl === forms.forgotPassword || formEl === forms.resetPassword);
   };
 
   const applyExpandedState = (expanded) => {
@@ -280,6 +295,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (form) form.style.display = "none";
       });
       if (ui.previewContent) ui.previewContent.style.display = "none";
+      
+      // Reset password flow flag when user logs in
+      isInPasswordFlow = false;
     } else {
       // User is not logged in - hide user-specific elements
       if (ui.userMenu) ui.userMenu.style.display = "none";
@@ -359,6 +377,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const updateUIFromData = async (pageData) => {
     if (!pageData || JSON.stringify(lastData) === JSON.stringify(pageData))
       return;
+    
+    // Don't update UI if user is in password reset flow
+    if (isInPasswordResetFlow()) {
+      return;
+    }
+    
     lastData = pageData;
 
     // Clear any previous fallback
@@ -722,6 +746,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error('Sign in error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        stack: error.stack
+      });
       hideLoader();
       
       // Custom error messages based on error type
@@ -740,6 +770,8 @@ document.addEventListener("DOMContentLoaded", () => {
           errorMessage = 'Account not found. Please check your email address.';
         } else if (error.message.includes('500')) {
           errorMessage = 'Server error. Please try again in a few moments.';
+        } else if (error.message.includes('Invalid response format')) {
+          errorMessage = 'Server response format error. Please try again.';
         }
       }
       
@@ -783,9 +815,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (error.message.includes('Network') || error.message.includes('fetch')) {
           errorMessage = 'Unable to connect to the server. Please check your internet connection.';
         } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-          errorMessage = 'Please sign in first to reset your password. The forgot password feature requires authentication.';
-        } else if (error.message.includes('Please sign in first')) {
-          errorMessage = 'Please sign in first to reset your password. The forgot password feature requires authentication.';
+          errorMessage = 'Unauthorized access. Please try again.';
         } else if (error.message.includes('500')) {
           errorMessage = 'Server error. Please try again in a few moments.';
         }
@@ -793,12 +823,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       showToast(errorMessage);
       
-      // If the error is about needing to sign in first, redirect to sign-in form
-      if (error.message.includes('Please sign in first') || errorMessage.includes('Please sign in first')) {
-        setTimeout(() => {
-          showAuthForm(forms.login);
-        }, 2000);
-      }
+      // No need to redirect to sign-in form since forgot password doesn't require authentication
     }
   };
 
@@ -1003,18 +1028,25 @@ document.addEventListener("DOMContentLoaded", () => {
           chrome.storage.onChanged.addListener((changes, area) => {
             try {
               if (area === "local") {
-                if (changes.currentPageData)
+                // Don't update UI if user is in password reset flow
+                const isInPasswordFlow = isInPasswordResetFlow();
+                
+                if (!isInPasswordFlow && changes.currentPageData) {
                   updateUIFromData(changes.currentPageData.newValue);
+                }
+                
                 if (changes.user || changes.isLoggedIn) {
                   // Update UI immediately for auth state changes
                   if (changes.isLoggedIn) {
                     const isLoggedIn = changes.isLoggedIn.newValue;
-                    if (!isLoggedIn && lastData) {
+                    if (!isLoggedIn && lastData && !isInPasswordFlow) {
                       // User logged out, show preview content
                       showPreviewContent(lastData);
                     }
                   }
-                  init();
+                  if (!isInPasswordFlow) {
+                    init();
+                  }
                 }
               }
             } catch (error) {

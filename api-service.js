@@ -225,28 +225,54 @@ class ApiService {
         }
       );
 
-      if (response.data && response.data.authToken && response.data.userData) {
-        // Store authentication data
-        this.authToken = response.data.authToken;
-        this.refreshToken = response.data.refreshToken;
-        this.userData = response.data.userData;
+      // Debug: Log the actual response structure
+      console.log('Sign-in API response:', response);
 
-        await this.storeAuthData(
-          response.data.authToken,
-          response.data.refreshToken,
-          response.data.userData
-        );
+      // Handle the actual API response structure from Swagger
+      let authToken, refreshToken, userData, expiresIn;
+      
+      if (response.data) {
+        // Based on actual API response: response.data contains authToken, refreshToken, expiresIn, and userData
+        if (response.data.authToken && response.data.userData) {
+          authToken = response.data.authToken;
+          refreshToken = response.data.refreshToken;
+          userData = response.data.userData;
+          expiresIn = response.data.expiresIn;
+        }
+        // Fallback for different response structures
+        else if (response.data.authToken && response.data.user) {
+          authToken = response.data.authToken;
+          refreshToken = response.data.refreshToken;
+          userData = response.data.user;
+          expiresIn = response.data.expiresIn;
+        }
+      }
+      
+      // If we found the required data, proceed with authentication
+      if (authToken && userData) {
+        // Store authentication data
+        this.authToken = authToken;
+        this.refreshToken = refreshToken;
+        this.userData = userData;
+
+        await this.storeAuthData(authToken, refreshToken, userData);
 
         return {
           success: true,
           message: response.message || CONFIG.SUCCESS.SIGN_IN,
-          user: response.data.userData,
-          authToken: response.data.authToken,
-          refreshToken: response.data.refreshToken,
-          expiresIn: response.data.expiresIn
+          user: userData,
+          authToken: authToken,
+          refreshToken: refreshToken,
+          expiresIn: expiresIn
         };
       } else {
-        throw new ApiError('Invalid response format from server', 500);
+        // Log the actual response for debugging
+        console.error('Sign-in failed - missing required data:', {
+          authToken: !!authToken,
+          userData: !!userData,
+          response: response
+        });
+        throw new ApiError('Invalid response format from server. Missing authToken or user data.', 500);
       }
     } catch (error) {
       console.error('Sign in error:', error);
@@ -270,20 +296,14 @@ class ApiService {
         throw new ApiError(CONFIG.ERRORS.INVALID_EMAIL, 400);
       }
 
-      // The API requires authentication as shown in Swagger documentation
-      // If no token is available, we need to inform the user
-      if (!this.authToken) {
-        throw new ApiError('Please sign in first to reset your password. The forgot password feature requires authentication.', 401);
-      }
-
       // Make direct fetch request with proper headers as shown in Swagger
+      // Note: Forgot password is a public endpoint that doesn't require authentication
       const response = await fetch(`${this.baseURL}${this.endpoints.FORGOT_PASSWORD}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'developer-name': 'null',
-          'Authorization': `Bearer ${this.authToken}`
+          'developer-name': 'null'
         },
         body: JSON.stringify({
           email: email.trim()
@@ -329,19 +349,14 @@ class ApiService {
         throw new ApiError(CONFIG.ERRORS.WEAK_PASSWORD, 400);
       }
 
-      // The API requires authentication
-      if (!this.authToken) {
-        throw new ApiError('Please sign in first to reset your password. The reset password feature requires authentication.', 401);
-      }
-
       // Make direct fetch request with proper headers
+      // Note: Reset password is a public endpoint that doesn't require authentication
       const response = await fetch(`${this.baseURL}${this.endpoints.RESET_PASSWORD}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'developer-name': 'null',
-          'Authorization': `Bearer ${this.authToken}`
+          'developer-name': 'null'
         },
         body: JSON.stringify({
           resetCode: resetCode.trim(),

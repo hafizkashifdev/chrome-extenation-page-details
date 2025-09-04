@@ -170,18 +170,18 @@
     container.className = 'magical-extension-container';
     container.innerHTML = `
       <div class="magical-hover-close">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </div>
       <div class="magical-extension-icon">
-        <img src="${chrome.runtime.getURL('icons/icon48.png')}" alt="IM" class="icon-content iim-logo" width="40" height="40">
-        <svg class="icon-content back-arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <img src="${chrome.runtime.getURL('icons/icon16.png')}" alt="IM" class="icon-content iim-logo" width="32" height="32">
+        <svg class="icon-content back-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
       </div>
       <div class="magical-drag-handle">
-        <svg xmlns="http://www.w3.org/2000/svg" width="8" height="14" viewBox="0 0 16 24" fill="#6c757d">
+        <svg xmlns="http://www.w3.org/2000/svg" width="3" height="10" viewBox="0 0 16 24" fill="#6c757d">
           <circle cx="4" cy="6" r="1"></circle><circle cx="12" cy="6" r="1"></circle>
           <circle cx="4" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle>
           <circle cx="4" cy="18" r="1"></circle><circle cx="12" cy="18" r="1"></circle>
@@ -222,34 +222,68 @@
     let startY, startTop;
 
     dragHandle.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
       isDragging = true;
       shadowHost.style.position = "fixed";
+      shadowHost.style.transition = "none";
 
       const rect = shadowHost.getBoundingClientRect();
       startY = e.clientY;
       startTop = rect.top;
 
-      container.style.cursor = "grabbing";
-      e.preventDefault();
+      // Add move cursor to drag handle
+      dragHandle.style.cursor = "move";
+      container.style.cursor = "move";
 
       const onMouseMove = (moveEvent) => {
         if (!isDragging) return;
+        
+        moveEvent.preventDefault();
+        moveEvent.stopPropagation();
 
         const deltaY = moveEvent.clientY - startY;
-        shadowHost.style.top = `${startTop + deltaY}px`;
+        const newTop = startTop + deltaY;
+        
+        // Constrain to viewport bounds
+        const containerHeight = shadowHost.offsetHeight;
+        const maxTop = 0;
+        const minTop = window.innerHeight - containerHeight;
+        
+        const constrainedTop = Math.max(maxTop, Math.min(minTop, newTop));
+        
+        shadowHost.style.top = `${constrainedTop}px`;
         shadowHost.style.bottom = "auto";
         shadowHost.style.transform = "none";
       };
 
-      const onMouseUp = () => {
+      const onMouseUp = (upEvent) => {
+        upEvent.preventDefault();
+        upEvent.stopPropagation();
+        
         isDragging = false;
-        container.style.cursor = "grab";
+        shadowHost.style.transition = "all 0.3s ease";
+        
+        // Reset cursors
+        dragHandle.style.cursor = "move";
+        container.style.cursor = "default";
+        
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
       };
 
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
+    });
+
+    // Prevent drag when clicking on other elements
+    icon.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+    });
+    
+    hoverCloseButton.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
     });
 
     // ✅ Icon click toggles popup
