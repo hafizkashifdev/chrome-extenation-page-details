@@ -1049,7 +1049,7 @@ body {
 .search-bar-container {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: 8px 12px;
   border-radius: 20px;
   border: 1px solid #DFE6E6;
   background: #FFFFFF;
@@ -1077,63 +1077,120 @@ body {
   font-weight: 400;
 }
 
-.ai-assistance-icon {
+.search-icon.sparkles {
+  color: var(--primary-blue);
+  margin-right: 12px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.search-icon.sparkles:hover {
+  transform: scale(1.1);
+  color: var(--primary-blue-hover);
+}
+
+.voice-btn, .search-action-btn {
   background: none;
   border: none;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 8px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  margin-right: 4px;
   flex-shrink: 0;
+  width: 24px;
+  height: 24px;
 }
 
-/* Remove SVG-specific styles and apply new image styles */
-.ai-assistance-icon img {
-  filter: drop-shadow(0px -3px 6px rgba(0, 196, 204, 0.15)) drop-shadow(0px 3px 6px rgba(1, 109, 182, 0.15));
+.voice-btn:hover {
+  background-color: transparent;
+  transform: scale(1.05);
 }
 
-.voice-btn, .search-action-btn {
+.search-action-btn:hover {
+  background-color: transparent;
+  transform: scale(1.1) translateX(2px);
+}
+
+.voice-btn svg {
+  color: var(--primary-blue);
+  width: 16px;
+  height: 16px;
+  transition: color 0.2s ease;
+}
+
+.voice-btn:hover svg {
+  color: var(--primary-blue-hover);
+}
+
+/* Voice button recording state */
+.voice-btn.recording {
+  background-color: #ff4444 !important;
+  animation: pulse-recording 1.5s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+  transform: scale(1.1);
+}
+
+.voice-btn.recording:hover {
+  background-color: #ff3333 !important;
+  transform: scale(1.15);
+}
+
+.voice-btn.recording svg {
+  color: white !important;
+  animation: voice-recording-icon 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-recording {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+  }
+}
+
+@keyframes voice-recording-icon {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+.search-action-btn {
   background: none;
   border: none;
-  padding: 6px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   border-radius: 50%;
-  transition: background-color 0.2s;
-  margin-right: 6px;
+  transition: all 0.2s ease;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+  margin-right: 0;
 }
 
-.voice-btn:hover, .search-action-btn:hover {
-  background-color: #f0f0f0;
+.search-action-btn svg {
+  color: var(--primary-blue);
+  width: 14px;
+  height: 14px;
+  transition: all 0.2s ease;
 }
 
-.search-action-btn {
-  background: #016DB6;
-  border: none;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background-color 0.2s, transform 0.2s;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-}
-
-.search-action-btn:hover {
-  background-color: var(--primary-blue-hover);
-  transform: scale(1.05);
-}
-
-/* Remove SVG-specific styles and apply new image styles */
-.search-action-btn img {
-  filter: drop-shadow(0px 3px 6px rgba(1, 109, 182, 0.15));
+.search-action-btn:hover svg {
+  color: var(--primary-blue-hover);
+  transform: translateX(2px);
 }
 
 .suggestions-container {
@@ -1219,6 +1276,8 @@ body {
   height: 1px;
   background: var(--border-color);
 }
+
+/* Voice button tooltip removed - now only shows message on click */
 
 .content-snippet:empty,
 .full-details:empty {

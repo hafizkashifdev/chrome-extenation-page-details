@@ -972,11 +972,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Voice button functionality
+  // Voice button functionality - Coming Soon
   if (ui.voiceButton) {
     ui.voiceButton.addEventListener("click", () => {
-      // Placeholder for voice input functionality
-      showToast("Voice input feature coming soon!", "success");
+      // Show a green toast message for voice input coming soon
+      showToast("🎤 Voice input feature coming soon!", "success");
+    });
+
+    // Add keyboard support for accessibility
+    ui.voiceButton.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        ui.voiceButton.click();
+      }
     });
   }
 

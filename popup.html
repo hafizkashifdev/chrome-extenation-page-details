@@ -168,27 +168,26 @@
       </button>
       <div class="breadcrumb-display" id="breadcrumbDisplay"></div>
     </div>
-    <!-- <div class="search-bar-container">
-      <img class="ai-assistance-icon" src="images/ai-assistance-search-icon.png" alt="AI Assistance" width="24" height="20" />
-      <input type="text" id="assistanceSearchInput" placeholder="Not what you need? Type query">
-      <button class="voice-btn" id="voiceButton">
-        <img src="images/search-voice-icon.png" alt="Voice" width="18" height="18" />
-      </button>
-      <button class="search-action-btn" id="sendAssistanceRequest">
-        <img src="images/search-send-icons.png" alt="Send" width="14" height="14" />
-      </button>
-    </div> -->
     <div class="search-bar-container">
       <svg class="search-icon sparkles" width="24" height="24" viewBox="0 0 24 24">
-        <path
-          d="M9.5 2.6l1.8 3.7 3.7 1.8-3.7 1.8-1.8 3.7-1.8-3.7-3.7-1.8 3.7-1.8 1.8-3.7zM14.5 11.4l.8 1.6 1.6.8-1.6.8-.8 1.6-.8-1.6-1.6-.8 1.6-.8.8-1.6z" />
+        <path d="M9.5 2.6l1.8 3.7 3.7 1.8-3.7 1.8-1.8 3.7-1.8-3.7-3.7-1.8 3.7-1.8 1.8-3.7zM14.5 11.4l.8 1.6 1.6.8-1.6.8-.8 1.6-.8-1.6-1.6-.8 1.6-.8.8-1.6z" />
       </svg>
-      <input type="text" id="assistanceSearchInput" placeholder="Need assistance? Type query">
+      <input type="text" id="assistanceSearchInput" placeholder="Type query">
+      
+      <button class="voice-btn" id="voiceButton" title="Voice Input">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+          <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+        </svg>
+      </button>
       
       <button class="search-action-btn" id="sendAssistanceRequest">
-
-        <img src="images/search-send-icons.png" alt="Send" width="14" height="14" /> </button>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
     </div>
+
 
     <div class="suggestions-container" id="suggestionsContainer">
     </div>
